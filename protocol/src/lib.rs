@@ -1,3 +1,6 @@
+#[macro_use(matches)]
+extern crate matches;
+
 const MAX_KEY_LEN: usize = 1 << 8;
 const MAX_VALUE_LEN: usize = 1 << 12;
 const MAX_ENTRIES: usize = 1 << 32 - 1;

@@ -177,8 +177,8 @@ impl Request<Vec<u8>> {
 
 #[cfg(test)]
 mod tests {
-    use std::io;
-    use std::io::Read;
+    use super::Request;
+    use std::io::{self, Cursor, Read};
 
     #[test]
     fn change_vec_as_mut_slice() {
@@ -187,5 +187,24 @@ mod tests {
         io::repeat(1).read_exact(data.as_mut_slice()).unwrap();
         assert_eq!(3, data.len());
         assert_eq!(&[1u8, 1, 1], &data[..]);
+    }
+
+    #[test]
+    fn request_set_test() {
+        let mut buf = Vec::new();
+        let set_request = Request::Set(vec![
+            (&b"name"[..], &b"Hexi"[..]),
+            (&b"last_name"[..], &b"Lee"[..]),
+        ]);
+        assert_eq!(33usize, set_request.write_to(&mut buf).unwrap());
+        let new_request = Request::read_from(&mut Cursor::new(buf)).unwrap();
+        assert!(matches!(&new_request, Request::<Vec<u8>>::Set(ref data)));
+        if let Request::<Vec<u8>>::Set(data) = new_request {
+            assert_eq!(2usize, data.len());
+            assert_eq!(&b"name"[..], data[0].0.as_slice());
+            assert_eq!(&b"Hexi"[..], data[0].1.as_slice());
+            assert_eq!(&b"last_name"[..], data[1].0.as_slice());
+            assert_eq!(&b"Lee"[..], data[1].1.as_slice());
+        }
     }
 }
