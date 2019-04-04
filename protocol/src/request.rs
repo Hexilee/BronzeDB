@@ -190,6 +190,20 @@ mod tests {
     }
 
     #[test]
+    fn request_get_test() {
+        let mut buf = Vec::new();
+        let get_request = Request::Get(vec![&b"name"[..], &b"last_name"[..]]);
+        assert_eq!(22usize, get_request.write_to(&mut buf).unwrap());
+        let new_request = Request::read_from(&mut Cursor::new(buf)).unwrap();
+        assert!(matches!(&new_request, Request::<Vec<u8>>::Get(ref data)));
+        if let Request::<Vec<u8>>::Get(data) = new_request {
+            assert_eq!(2usize, data.len());
+            assert_eq!(&b"name"[..], data[0].as_slice());
+            assert_eq!(&b"last_name"[..], data[1].as_slice());
+        }
+    }
+
+    #[test]
     fn request_set_test() {
         let mut buf = Vec::new();
         let set_request = Request::Set(vec![
