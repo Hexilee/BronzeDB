@@ -218,6 +218,26 @@ mod tests {
     }
 
     #[test]
+    fn request_scan_test() {
+        let mut buf = Vec::new();
+        let scan_request = Request::Scan {
+            lower_bound: None,
+            upper_bound: Some(&b"name"[..]),
+        };
+        assert_eq!(265usize, scan_request.write_to(&mut buf).unwrap());
+        let new_request = Request::read_from(&mut Cursor::new(buf)).unwrap();
+        assert!(matches!(&new_request, Request::<Vec<u8>>::Scan{ref lower_bound, ref upper_bound}));
+        if let Request::<Vec<u8>>::Scan {
+            lower_bound,
+            upper_bound,
+        } = new_request
+        {
+            assert!(matches!(lower_bound, None));
+            assert!(matches!(upper_bound, Some(key)));
+        }
+    }
+
+    #[test]
     fn request_set_test() {
         let mut buf = Vec::new();
         let set_request = Request::Set(vec![
