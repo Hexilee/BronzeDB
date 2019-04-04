@@ -1,7 +1,6 @@
-pub type Key = [u8; 256];
+use num_bigint::BigUint;
+
+pub type Key = BigUint;
 pub type Value = Vec<u8>;
 
-pub struct Entity {
-    key: Key,
-    value: Value,
-}
+pub type KV = (Key, Value);

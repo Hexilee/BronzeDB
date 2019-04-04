@@ -1,8 +1,9 @@
 [package]
-name = "engine"
+name = "protocol"
 version = "0.1.0"
 authors = ["Hexilee <hexileee@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-num-bigint = "0.2"
+
+bytes = "0.4"
