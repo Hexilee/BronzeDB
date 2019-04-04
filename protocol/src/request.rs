@@ -1,6 +1,8 @@
 use crate::{MAX_KEY, MAX_KEY_LEN, MAX_VALUE_LEN, MIN_KEY};
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
-use std::io::{self, Write};
+use engine::status;
+use std::io::{self, Read, Write};
+use std::ops::Deref;
 
 #[derive(Debug, Copy, Clone)]
 pub enum Action {
@@ -8,19 +10,32 @@ pub enum Action {
     Get = 1,
     Delete = 2,
     Scan = 3,
+    Unknown = 4,
 }
 
-pub enum Request<'a> {
-    Set(Vec<(&'a [u8], &'a [u8])>),
-    Get(Vec<&'a [u8]>),
-    Delete(Vec<&'a [u8]>),
+impl From<u8> for Action {
+    fn from(value: u8) -> Self {
+        match value {
+            0 => Action::Set,
+            1 => Action::Get,
+            2 => Action::Delete,
+            3 => Action::Scan,
+            _ => Action::Unknown,
+        }
+    }
+}
+
+pub enum Request<T: Deref<Target = [u8]>> {
+    Set(Vec<(T, T)>),
+    Get(Vec<T>),
+    Delete(Vec<T>),
     Scan {
-        lower_bound: Option<&'a [u8]>,
-        upper_bound: Option<&'a [u8]>,
+        lower_bound: Option<T>,
+        upper_bound: Option<T>,
     },
 }
 
-impl<'a> Request<'a> {
+impl Request<&[u8]> {
     pub fn write_to(self, mut writer: impl Write) -> io::Result<usize> {
         let mut counter = 1usize; // for Action
         match self {
@@ -33,8 +48,8 @@ impl<'a> Request<'a> {
                     debug_assert!(value.len() <= MAX_VALUE_LEN);
                     writer.write_u16::<BigEndian>(key.len() as u16)?;
                     writer.write_u16::<BigEndian>(value.len() as u16)?;
-                    writer.write_all(key)?;
-                    writer.write_all(value)?;
+                    writer.write_all(&key)?;
+                    writer.write_all(&value)?;
                     counter += key.len() + value.len();
                 }
             }
@@ -46,7 +61,7 @@ impl<'a> Request<'a> {
                 for key in keys {
                     debug_assert!(key.len() <= MAX_KEY_LEN);
                     writer.write_u16::<BigEndian>(key.len() as u16)?;
-                    writer.write_all(key)?;
+                    writer.write_all(&key)?;
                     counter += key.len()
                 }
             }
@@ -58,7 +73,7 @@ impl<'a> Request<'a> {
                 for key in keys {
                     debug_assert!(key.len() <= MAX_KEY_LEN);
                     writer.write_u16::<BigEndian>(key.len() as u16)?;
-                    writer.write_all(key)?;
+                    writer.write_all(&key)?;
                     counter += key.len()
                 }
             }
@@ -80,5 +95,97 @@ impl<'a> Request<'a> {
             }
         }
         Ok(counter)
+    }
+}
+
+impl Request<Vec<u8>> {
+    pub fn read_from(mut reader: impl Read) -> status::Result<Self> {
+        let action = reader.read_u8()?.into();
+        match action {
+            Action::Set => {
+                let size = reader.read_u32::<BigEndian>()?;
+                let mut data = Vec::with_capacity(size as usize);
+                for _ in 0..size {
+                    let key_len = reader.read_u16::<BigEndian>()?;
+                    let value_len = reader.read_u16::<BigEndian>()?;
+                    let mut key = Vec::with_capacity(key_len as usize);
+                    unsafe { key.set_len(key_len as usize) };
+                    reader.read_exact(key.as_mut_slice())?;
+                    let mut value = Vec::with_capacity(value_len as usize);
+                    unsafe { value.set_len(value_len as usize) };
+                    reader.read_exact(value.as_mut_slice())?;
+                    data.push((key, value));
+                }
+                Ok(Request::<Vec<u8>>::Set(data))
+            }
+
+            Action::Get => {
+                let size = reader.read_u32::<BigEndian>()?;
+                let mut data = Vec::with_capacity(size as usize);
+                for _ in 0..size {
+                    let key_len = reader.read_u16::<BigEndian>()?;
+                    let mut key = Vec::with_capacity(key_len as usize);
+                    unsafe { key.set_len(key_len as usize) };
+                    reader.read_exact(key.as_mut_slice())?;
+                    data.push(key);
+                }
+                Ok(Request::<Vec<u8>>::Get(data))
+            }
+
+            Action::Delete => {
+                let size = reader.read_u32::<BigEndian>()?;
+                let mut data = Vec::with_capacity(size as usize);
+                for _ in 0..size {
+                    let key_len = reader.read_u16::<BigEndian>()?;
+                    let mut key = Vec::with_capacity(key_len as usize);
+                    unsafe { key.set_len(key_len as usize) };
+                    reader.read_exact(key.as_mut_slice())?;
+                    data.push(key);
+                }
+                Ok(Request::<Vec<u8>>::Delete(data))
+            }
+
+            Action::Scan => {
+                let lower_bound_len = reader.read_u16::<BigEndian>()?;
+                let upper_bound_len = reader.read_u16::<BigEndian>()?;
+                let mut lower_bound = Vec::with_capacity(lower_bound_len as usize);
+                unsafe { lower_bound.set_len(lower_bound_len as usize) };
+                reader.read_exact(lower_bound.as_mut_slice())?;
+                let mut upper_bound = Vec::with_capacity(upper_bound_len as usize);
+                unsafe { upper_bound.set_len(upper_bound_len as usize) };
+                reader.read_exact(upper_bound.as_mut_slice())?;
+                Ok(Request::<Vec<u8>>::Scan {
+                    lower_bound: if lower_bound.as_slice() == MIN_KEY {
+                        None
+                    } else {
+                        Some(lower_bound)
+                    },
+                    upper_bound: if upper_bound.as_slice() == MAX_KEY {
+                        None
+                    } else {
+                        Some(upper_bound)
+                    },
+                })
+            }
+            Action::Unknown => Err(status::Error::new(
+                status::StatusCode::UnknownAction,
+                "action is unknown",
+            )),
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::io;
+    use std::io::Read;
+
+    #[test]
+    fn change_vec_as_mut_slice() {
+        let mut data = Vec::with_capacity(3);
+        unsafe { data.set_len(3) };
+        io::repeat(1).read_exact(data.as_mut_slice()).unwrap();
+        assert_eq!(3, data.len());
+        assert_eq!(&[1u8, 1, 1], &data[..]);
     }
 }
