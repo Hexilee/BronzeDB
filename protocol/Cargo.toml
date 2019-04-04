@@ -5,5 +5,4 @@ authors = ["Hexilee <hexileee@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-
-bytes = "0.4"
+byteorder = "1.3"
