@@ -1,11 +1,12 @@
 use libc::memcmp;
-use std::cmp::{Ordering, PartialEq, PartialOrd};
+use std::cmp::{Ordering, PartialEq, PartialOrd, Eq};
 use std::mem::transmute;
 use std::ops::Deref;
+use std::hash::{Hash, Hasher};
 use std::os::raw::c_void;
 
 pub type Value = Vec<u8>;
-pub type Entry = (RawKey, Value);
+pub type Entry = (Key, Value);
 
 pub struct Key {
     data: Vec<u8>,
@@ -39,12 +40,12 @@ impl PartialEq for RawKey {
     fn eq(&self, other: &Self) -> bool {
         self.len() == other.len()
             && unsafe {
-                0 == memcmp(
-                    &self.data[0] as *const u8 as *const c_void,
-                    &other.data[0] as *const u8 as *const c_void,
-                    self.len(),
-                )
-            }
+            0 == memcmp(
+                &self.data[0] as *const u8 as *const c_void,
+                &other.data[0] as *const u8 as *const c_void,
+                self.len(),
+            )
+        }
     }
 }
 
@@ -84,11 +85,20 @@ impl PartialOrd for Key {
     }
 }
 
+impl Eq for Key {}
+
+impl Hash for Key {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        <u8 as Hash>::hash_slice(self.as_slice(), state)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::RawKey;
     use std::cmp::Ordering::*;
     use std::cmp::PartialOrd;
+
     #[test]
     fn key_cmp() {
         for (former, latter, order) in vec![
