@@ -1,5 +1,6 @@
 use std::fmt::{Display, Formatter};
 use std::io;
+use std::sync::PoisonError;
 
 pub type Result<T> = core::result::Result<T, Error>;
 
@@ -14,6 +15,7 @@ pub enum StatusCode {
     Ok = 0,
     IOError = 1,
     UnknownAction = 2,
+    PoisonError = 3,
 }
 
 impl Error {
@@ -41,6 +43,15 @@ impl From<io::Error> for Error {
     fn from(err: io::Error) -> Self {
         Self {
             code: StatusCode::IOError,
+            message: err.to_string(),
+        }
+    }
+}
+
+impl<T> From<PoisonError<T>> for Error {
+    fn from(err: PoisonError<T>) -> Self {
+        Self {
+            code: StatusCode::PoisonError,
             message: err.to_string(),
         }
     }

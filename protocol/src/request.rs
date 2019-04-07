@@ -177,6 +177,9 @@ impl Request<Vec<u8>> {
 
 #[cfg(test)]
 mod tests {
+    #[macro_use(matches)]
+    extern crate matches;
+
     use super::Request;
     use std::io::{self, Cursor, Read};
 
