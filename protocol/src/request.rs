@@ -26,56 +26,51 @@ impl From<u8> for Action {
 }
 
 pub enum Request<T: Deref<Target = [u8]>> {
-    Set(Vec<(T, T)>),
-    Get(Vec<T>),
-    Delete(Vec<T>),
+    Set {
+        key: T,
+        value: T,
+    },
+    Get {
+        key: T,
+    },
+    Delete {
+        key: T,
+    },
     Scan {
         lower_bound: Option<T>,
         upper_bound: Option<T>,
     },
 }
 
-impl Request<&[u8]> {
+impl<T: Deref<Target = [u8]>> Request<T> {
     pub fn write_to(self, mut writer: impl Write) -> io::Result<usize> {
         let mut counter = 1usize; // for Action
         match self {
-            Request::Set(entries) => {
+            Request::Set { key, value } => {
                 writer.write_u8(Action::Set as u8)?;
-                writer.write_u32::<BigEndian>(entries.len() as u32)?;
-                counter += 4 + 4 * entries.len();
-                for (key, value) in entries {
-                    debug_assert!(key.len() <= MAX_KEY_LEN);
-                    debug_assert!(value.len() <= MAX_VALUE_LEN);
-                    writer.write_u16::<BigEndian>(key.len() as u16)?;
-                    writer.write_u16::<BigEndian>(value.len() as u16)?;
-                    writer.write_all(&key)?;
-                    writer.write_all(&value)?;
-                    counter += key.len() + value.len();
-                }
+                debug_assert!(key.len() <= MAX_KEY_LEN);
+                debug_assert!(value.len() <= MAX_VALUE_LEN);
+                writer.write_u16::<BigEndian>(key.len() as u16)?;
+                writer.write_u16::<BigEndian>(value.len() as u16)?;
+                writer.write_all(&key)?;
+                writer.write_all(&value)?;
+                counter += 4 + key.len() + value.len();
             }
 
-            Request::Get(keys) => {
+            Request::Get { key } => {
                 writer.write_u8(Action::Get as u8)?;
-                writer.write_u32::<BigEndian>(keys.len() as u32)?;
-                counter += 4 + 2 * keys.len();
-                for key in keys {
-                    debug_assert!(key.len() <= MAX_KEY_LEN);
-                    writer.write_u16::<BigEndian>(key.len() as u16)?;
-                    writer.write_all(&key)?;
-                    counter += key.len()
-                }
+                debug_assert!(key.len() <= MAX_KEY_LEN);
+                writer.write_u16::<BigEndian>(key.len() as u16)?;
+                writer.write_all(&key)?;
+                counter += 2 + key.len()
             }
 
-            Request::Delete(keys) => {
+            Request::Delete { key } => {
                 writer.write_u8(Action::Delete as u8)?;
-                writer.write_u32::<BigEndian>(keys.len() as u32)?;
-                counter += 4 + 2 * keys.len();
-                for key in keys {
-                    debug_assert!(key.len() <= MAX_KEY_LEN);
-                    writer.write_u16::<BigEndian>(key.len() as u16)?;
-                    writer.write_all(&key)?;
-                    counter += key.len()
-                }
+                debug_assert!(key.len() <= MAX_KEY_LEN);
+                writer.write_u16::<BigEndian>(key.len() as u16)?;
+                writer.write_all(&key)?;
+                counter += 2 + key.len()
             }
 
             Request::Scan {
@@ -83,14 +78,20 @@ impl Request<&[u8]> {
                 upper_bound,
             } => {
                 writer.write_u8(Action::Scan as u8)?;
-                let lower_key = lower_bound.unwrap_or(MIN_KEY);
-                let upper_key = upper_bound.unwrap_or(MAX_KEY);
+                let lower_key = match lower_bound.as_ref() {
+                    Some(key) => key.deref(),
+                    None => MIN_KEY,
+                };
+                let upper_key = match upper_bound.as_ref() {
+                    Some(key) => key.deref(),
+                    None => MIN_KEY,
+                };
                 debug_assert!(lower_key.len() <= MAX_KEY_LEN);
                 debug_assert!(upper_key.len() <= MAX_KEY_LEN);
                 writer.write_u16::<BigEndian>(lower_key.len() as u16)?;
                 writer.write_u16::<BigEndian>(upper_key.len() as u16)?;
-                writer.write_all(lower_key)?;
-                writer.write_all(upper_key)?;
+                writer.write_all(&lower_key)?;
+                writer.write_all(&upper_key)?;
                 counter += 4 + lower_key.len() + upper_key.len();
             }
         }
@@ -103,46 +104,31 @@ impl Request<Vec<u8>> {
         let action = reader.read_u8()?.into();
         match action {
             Action::Set => {
-                let size = reader.read_u32::<BigEndian>()?;
-                let mut data = Vec::with_capacity(size as usize);
-                for _ in 0..size {
-                    let key_len = reader.read_u16::<BigEndian>()?;
-                    let value_len = reader.read_u16::<BigEndian>()?;
-                    let mut key = Vec::with_capacity(key_len as usize);
-                    unsafe { key.set_len(key_len as usize) };
-                    reader.read_exact(key.as_mut_slice())?;
-                    let mut value = Vec::with_capacity(value_len as usize);
-                    unsafe { value.set_len(value_len as usize) };
-                    reader.read_exact(value.as_mut_slice())?;
-                    data.push((key, value));
-                }
-                Ok(Request::<Vec<u8>>::Set(data))
+                let key_len = reader.read_u16::<BigEndian>()?;
+                let value_len = reader.read_u16::<BigEndian>()?;
+                let mut key = Vec::with_capacity(key_len as usize);
+                unsafe { key.set_len(key_len as usize) };
+                reader.read_exact(key.as_mut_slice())?;
+                let mut value = Vec::with_capacity(value_len as usize);
+                unsafe { value.set_len(value_len as usize) };
+                reader.read_exact(value.as_mut_slice())?;
+                Ok(Request::<Vec<u8>>::Set { key, value })
             }
 
             Action::Get => {
-                let size = reader.read_u32::<BigEndian>()?;
-                let mut data = Vec::with_capacity(size as usize);
-                for _ in 0..size {
-                    let key_len = reader.read_u16::<BigEndian>()?;
-                    let mut key = Vec::with_capacity(key_len as usize);
-                    unsafe { key.set_len(key_len as usize) };
-                    reader.read_exact(key.as_mut_slice())?;
-                    data.push(key);
-                }
-                Ok(Request::<Vec<u8>>::Get(data))
+                let key_len = reader.read_u16::<BigEndian>()?;
+                let mut key = Vec::with_capacity(key_len as usize);
+                unsafe { key.set_len(key_len as usize) };
+                reader.read_exact(key.as_mut_slice())?;
+                Ok(Request::<Vec<u8>>::Get { key })
             }
 
             Action::Delete => {
-                let size = reader.read_u32::<BigEndian>()?;
-                let mut data = Vec::with_capacity(size as usize);
-                for _ in 0..size {
-                    let key_len = reader.read_u16::<BigEndian>()?;
-                    let mut key = Vec::with_capacity(key_len as usize);
-                    unsafe { key.set_len(key_len as usize) };
-                    reader.read_exact(key.as_mut_slice())?;
-                    data.push(key);
-                }
-                Ok(Request::<Vec<u8>>::Delete(data))
+                let key_len = reader.read_u16::<BigEndian>()?;
+                let mut key = Vec::with_capacity(key_len as usize);
+                unsafe { key.set_len(key_len as usize) };
+                reader.read_exact(key.as_mut_slice())?;
+                Ok(Request::<Vec<u8>>::Delete { key })
             }
 
             Action::Scan => {
@@ -177,9 +163,6 @@ impl Request<Vec<u8>> {
 
 #[cfg(test)]
 mod tests {
-    #[macro_use(matches)]
-    extern crate matches;
-
     use super::Request;
     use std::io::{self, Cursor, Read};
 
@@ -195,28 +178,24 @@ mod tests {
     #[test]
     fn request_delete_test() {
         let mut buf = Vec::new();
-        let delete_request = Request::Delete(vec![&b"name"[..], &b"last_name"[..]]);
-        assert_eq!(22usize, delete_request.write_to(&mut buf).unwrap());
+        let delete_request = Request::Delete { key: &b"name"[..] };
+        assert_eq!(7usize, delete_request.write_to(&mut buf).unwrap());
         let new_request = Request::read_from(&mut Cursor::new(buf)).unwrap();
-        assert!(matches!(&new_request, Request::<Vec<u8>>::Delete(ref data)));
-        if let Request::<Vec<u8>>::Delete(data) = new_request {
-            assert_eq!(2usize, data.len());
-            assert_eq!(&b"name"[..], data[0].as_slice());
-            assert_eq!(&b"last_name"[..], data[1].as_slice());
+        assert!(matches!(&new_request, Request::<Vec<u8>>::Delete{ref key}));
+        if let Request::<Vec<u8>>::Delete { ref key } = new_request {
+            assert_eq!(&b"name"[..], key.as_slice());
         }
     }
 
     #[test]
     fn request_get_test() {
         let mut buf = Vec::new();
-        let get_request = Request::Get(vec![&b"name"[..], &b"last_name"[..]]);
-        assert_eq!(22usize, get_request.write_to(&mut buf).unwrap());
+        let get_request = Request::Get { key: &b"name"[..] };
+        assert_eq!(7usize, get_request.write_to(&mut buf).unwrap());
         let new_request = Request::read_from(&mut Cursor::new(buf)).unwrap();
-        assert!(matches!(&new_request, Request::<Vec<u8>>::Get(ref data)));
-        if let Request::<Vec<u8>>::Get(data) = new_request {
-            assert_eq!(2usize, data.len());
-            assert_eq!(&b"name"[..], data[0].as_slice());
-            assert_eq!(&b"last_name"[..], data[1].as_slice());
+        assert!(matches!(&new_request, Request::<Vec<u8>>::Get{ref key}));
+        if let Request::<Vec<u8>>::Get { ref key } = new_request {
+            assert_eq!(&b"name"[..], key.as_slice());
         }
     }
 
@@ -243,19 +222,16 @@ mod tests {
     #[test]
     fn request_set_test() {
         let mut buf = Vec::new();
-        let set_request = Request::Set(vec![
-            (&b"name"[..], &b"Hexi"[..]),
-            (&b"last_name"[..], &b"Lee"[..]),
-        ]);
-        assert_eq!(33usize, set_request.write_to(&mut buf).unwrap());
+        let set_request = Request::Set {
+            key: &b"last_name"[..],
+            value: &b"Lee"[..],
+        };
+        assert_eq!(17usize, set_request.write_to(&mut buf).unwrap());
         let new_request = Request::read_from(&mut Cursor::new(buf)).unwrap();
-        assert!(matches!(&new_request, Request::<Vec<u8>>::Set(ref data)));
-        if let Request::<Vec<u8>>::Set(data) = new_request {
-            assert_eq!(2usize, data.len());
-            assert_eq!(&b"name"[..], data[0].0.as_slice());
-            assert_eq!(&b"Hexi"[..], data[0].1.as_slice());
-            assert_eq!(&b"last_name"[..], data[1].0.as_slice());
-            assert_eq!(&b"Lee"[..], data[1].1.as_slice());
+        assert!(matches!(&new_request, Request::<Vec<u8>>::Set{ref key, ref value}));
+        if let Request::<Vec<u8>>::Set { ref key, ref value } = new_request {
+            assert_eq!(&b"last_name"[..], key.as_slice());
+            assert_eq!(&b"Lee"[..], value.as_slice());
         }
     }
 }
