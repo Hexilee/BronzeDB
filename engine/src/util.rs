@@ -1,30 +1,30 @@
 use libc::memcmp;
 use std::cmp::{Ordering, PartialEq, PartialOrd};
+use std::mem::transmute;
 use std::ops::Deref;
 use std::os::raw::c_void;
 
 pub type Value = Vec<u8>;
-pub type Entry<'a> = (Key<'a>, &'a Value);
+pub type Entry = (Key, Value);
 
-#[derive(Copy, Clone)]
-pub struct Key<'a> {
-    data: &'a [u8],
+pub struct Key {
+    data: [u8],
 }
 
-impl<'a> Deref for Key<'a> {
+impl Deref for Key {
     type Target = [u8];
     fn deref(&self) -> &Self::Target {
-        self.data
+        &self.data
     }
 }
 
-impl<'a> From<&'a [u8]> for Key<'a> {
-    fn from(data: &'a [u8]) -> Self {
-        Self { data }
+impl From<&[u8]> for &Key {
+    fn from(data: &[u8]) -> Self {
+        unsafe { transmute(data) }
     }
 }
 
-impl<'a> PartialEq for Key<'a> {
+impl PartialEq for Key {
     fn eq(&self, other: &Self) -> bool {
         self.len() == other.len()
             && unsafe {
@@ -37,7 +37,7 @@ impl<'a> PartialEq for Key<'a> {
     }
 }
 
-impl<'a> PartialOrd for Key<'a> {
+impl PartialOrd for Key {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         match unsafe {
             memcmp(
@@ -75,8 +75,8 @@ mod tests {
             (&b"hah"[..], &b"haha"[..], Less),
             (&b"hahah"[..], &b"haha"[..], Greater),
         ] {
-            let former_key: Key = former.into();
-            let latter_key = latter.into();
+            let former_key: &Key = former.into();
+            let latter_key: &Key = latter.into();
             assert_eq!(order, former_key.partial_cmp(&latter_key).unwrap());
         }
     }
