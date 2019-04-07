@@ -5,3 +5,5 @@ authors = ["Hexilee <hexileee@gmail.com>"]
 edition = "2018"
 
 [dependencies]
+engine = { path = "../engine", version = "0.1"}
+protocol = { path = "../protocol", version = "0.1"}
