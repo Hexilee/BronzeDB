@@ -3,7 +3,7 @@ use std::cmp::{Ordering, PartialEq, PartialOrd};
 use std::ops::Deref;
 use std::os::raw::c_void;
 
-pub type Value = [u8];
+pub type Value = Vec<u8>;
 pub type Entry<'a> = (Key<'a>, &'a Value);
 
 #[derive(Copy, Clone)]

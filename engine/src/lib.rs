@@ -4,7 +4,7 @@ extern crate matches;
 use crate::util::{Entry, Key, Value};
 
 pub trait Engine {
-    fn set(key: Key, value: &Value) -> status::Result<()>;
+    fn set(key: Key, value: Value) -> status::Result<()>;
     fn get(key: Key, value: &mut Value) -> status::Result<()>;
     fn delete(key: Key) -> status::Result<()>;
     fn scan(
