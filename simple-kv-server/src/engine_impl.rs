@@ -22,11 +22,15 @@ impl Engine for EngineImpl {
         Ok(())
     }
 
-    fn get(&self, key: Key) -> status::Result<&Value> {
-        self.inner.get(&key).ok_or(status::Error::new(
-            status::StatusCode::NotFound,
-            format!("key {:?} not found", &key),
-        ))
+    fn get(&self, key: Key) -> status::Result<Value> {
+        Ok(self
+            .inner
+            .get(&key)
+            .ok_or(status::Error::new(
+                status::StatusCode::NotFound,
+                format!("key {:?} not found", &key),
+            ))?
+            .clone())
     }
 
     fn delete(&mut self, key: Key) -> status::Result<()> {
