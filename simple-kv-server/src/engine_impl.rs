@@ -17,23 +17,37 @@ impl EngineImpl {
 }
 
 impl Engine for EngineImpl {
-    fn set(key: &Key, value: Vec<u8>) -> status::Result<()> {
+    fn set(&mut self, key: Key, value: Vec<u8>) -> status::Result<()> {
+        self.inner.write()?.insert(key, value);
+        Ok(())
+    }
+
+    fn get(&self, key: Key, value: &mut Vec<u8>) -> status::Result<()> {
         unimplemented!()
     }
 
-    fn get(key: &Key, value: &mut Vec<u8>) -> status::Result<()> {
-        unimplemented!()
-    }
-
-    fn delete(key: &Key) -> status::Result<()> {
+    fn delete(&mut self, key: Key) -> status::Result<()> {
         unimplemented!()
     }
 
     fn scan(
-        lower_bound: Option<&Key>,
-        upper_bound: Option<&Key>,
-        visitor: impl Fn(&Entry) -> status::Result<()>,
+        &self,
+        lower_bound: Option<Key>,
+        upper_bound: Option<Key>,
+        visitor: impl Fn(Entry) -> status::Result<()>,
     ) -> status::Result<usize> {
-        unimplemented!()
+        let mut counter = 0usize;
+        let mut inner = self.inner.read()?;
+        let mut entries: Box<dyn Iterator<Item = Entry>> = Box::new(inner.iter());
+        if let Some(lower_key) = lower_bound {
+            entries = Box::new(entries.filter(move |(key, _)| *key >= &lower_key))
+        }
+        if let Some(upper_key) = upper_bound {
+            entries = Box::new(entries.filter(move |(key, _)| *key <= &upper_key))
+        }
+        for (key, value) in entries.into_iter() {
+            visitor((key, value))?;
+        }
+        Ok(counter)
     }
 }
