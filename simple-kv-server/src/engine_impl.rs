@@ -5,29 +5,36 @@ use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 
 pub struct EngineImpl {
-    inner: Arc<RwLock<HashMap<Key, Value>>>,
+    inner: HashMap<Key, Value>,
 }
 
 impl EngineImpl {
     pub fn new() -> Self {
         Self {
-            inner: Arc::new(RwLock::new(HashMap::new())),
+            inner: HashMap::new(),
         }
     }
 }
 
 impl Engine for EngineImpl {
     fn set(&mut self, key: Key, value: Vec<u8>) -> status::Result<()> {
-        self.inner.write()?.insert(key, value);
+        self.inner.insert(key, value);
         Ok(())
     }
 
-    fn get(&self, key: Key, value: &mut Vec<u8>) -> status::Result<()> {
-        unimplemented!()
+    fn get(&self, key: Key) -> status::Result<&Value> {
+        self.inner.get(&key).ok_or(status::Error::new(
+            status::StatusCode::NotFound,
+            format!("key {:?} not found", &key),
+        ))
     }
 
     fn delete(&mut self, key: Key) -> status::Result<()> {
-        unimplemented!()
+        self.inner.remove(&key).ok_or(status::Error::new(
+            status::StatusCode::NotFound,
+            format!("key {:?} not found", &key),
+        ))?;
+        Ok(())
     }
 
     fn scan(
@@ -37,8 +44,7 @@ impl Engine for EngineImpl {
         visitor: impl Fn(Entry) -> status::Result<()>,
     ) -> status::Result<usize> {
         let mut counter = 0usize;
-        let mut inner = self.inner.read()?;
-        let mut entries: Box<dyn Iterator<Item = Entry>> = Box::new(inner.iter());
+        let mut entries: Box<dyn Iterator<Item = Entry>> = Box::new(self.inner.iter());
         if let Some(lower_key) = lower_bound {
             entries = Box::new(entries.filter(move |(key, _)| *key >= &lower_key))
         }

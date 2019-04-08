@@ -16,6 +16,7 @@ pub enum StatusCode {
     IOError = 1,
     UnknownAction = 2,
     PoisonError = 3,
+    NotFound = 4,
 }
 
 impl Error {
