@@ -1,8 +1,10 @@
-use engine::status;
+use crate::engine_impl::EngineImpl;
+use engine::{status, Engine};
 use protocol::request::Request::{self, *};
 use std::net::{TcpListener, TcpStream};
+use std::thread::spawn;
 
-fn handle_client(mut stream: TcpStream) -> status::Result<()> {
+fn handle_client<T: Engine>(mut stream: TcpStream, engine: T) -> status::Result<()> {
     loop {
         match Request::read_from(&mut stream)? {
             Get { key } => unimplemented!(),
@@ -12,20 +14,16 @@ fn handle_client(mut stream: TcpStream) -> status::Result<()> {
                 upper_bound,
                 lower_bound,
             } => unimplemented!(),
-            Unknown => {
-                break Err(status::Error::new(
-                    status::StatusCode::UnknownAction,
-                    "unknown action",
-                ));
-            }
         }
     }
 }
 
 fn main() -> status::Result<()> {
     let listener = TcpListener::bind("127.0.0.1:8088")?;
+    let shared_engine = EngineImpl::new();
     for stream in listener.incoming() {
-        handle_client(stream?);
+        let engine = shared_engine.clone();
+        spawn(move || handle_client(stream?, engine));
     }
     Ok(())
 }

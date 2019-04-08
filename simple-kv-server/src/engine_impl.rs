@@ -60,6 +60,7 @@ impl Engine for EngineImpl {
         }
         for (key, value) in entries.into_iter() {
             visitor((key, value))?;
+            counter += 1;
         }
         Ok(counter)
     }
