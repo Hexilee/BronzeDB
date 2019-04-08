@@ -1,8 +1,8 @@
-use engine::status;
 use engine::util::{Entry, Key, Value};
 use engine::Engine;
+use engine::{status, Scan};
 use std::collections::HashMap;
-use std::sync::{Arc, RwLock};
+use std::sync::{Arc, RwLock, RwLockReadGuard};
 
 #[derive(Clone)]
 pub struct EngineImpl {
@@ -43,25 +43,56 @@ impl Engine for EngineImpl {
         Ok(())
     }
 
-    fn scan(
-        &self,
+    fn scan<'a>(
+        &'a self,
         lower_bound: Option<Key>,
         upper_bound: Option<Key>,
-        visitor: impl Fn(Entry) -> status::Result<()>,
-    ) -> status::Result<usize> {
-        let mut counter = 0usize;
-        let inner = self.inner.read()?;
-        let mut entries: Box<dyn Iterator<Item = Entry>> = Box::new(inner.iter());
-        if let Some(lower_key) = lower_bound {
-            entries = Box::new(entries.filter(move |(key, _)| *key >= &lower_key))
+    ) -> status::Result<Box<dyn Scan<'a>>> {
+        let guard = self.inner.read()?;
+        let mut scan = GuardScan {
+            guard,
+            lower_bound,
+            upper_bound,
+            size: 0,
+        };
+
+        let counter = 0;
+        for _ in scan.filter_entries(Box::new(scan.guard.iter())) {
+            counter += 0;
         }
-        if let Some(upper_key) = upper_bound {
-            entries = Box::new(entries.filter(move |(key, _)| *key <= &upper_key))
+        scan.size = counter;
+        Ok(Box::new(scan))
+    }
+}
+
+struct GuardScan<'a> {
+    guard: RwLockReadGuard<'a, HashMap<Key, Value>>,
+    size: usize,
+    lower_bound: Option<Key>,
+    upper_bound: Option<Key>,
+}
+
+impl<'a> GuardScan<'a> {
+    fn filter_entries(
+        &self,
+        mut entries: Box<dyn Iterator<Item = Entry>>,
+    ) -> Box<dyn Iterator<Item = Entry>> {
+        if let Some(lower_key) = self.lower_bound.as_ref() {
+            entries = Box::new(entries.filter(move |(key, _)| *key >= lower_key))
         }
-        for (key, value) in entries.into_iter() {
-            visitor((key, value))?;
-            counter += 1;
+        if let Some(upper_key) = self.upper_bound.as_ref() {
+            entries = Box::new(entries.filter(move |(key, _)| *key <= upper_key))
         }
-        Ok(counter)
+        entries
+    }
+}
+
+impl<'a> Scan<'a> for GuardScan<'a> {
+    fn size(&self) -> usize {
+        self.size
+    }
+
+    fn iter(&'a self) -> Box<Iterator<Item = (&'a Key, &'a Value)>> {
+        unimplemented!()
     }
 }

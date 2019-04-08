@@ -1,14 +1,14 @@
 use libc::memcmp;
-use std::cmp::{Ordering, PartialEq, PartialOrd, Eq};
+use std::cmp::{Eq, Ordering, PartialEq, PartialOrd};
+use std::hash::{Hash, Hasher};
 use std::mem::transmute;
 use std::ops::Deref;
-use std::hash::{Hash, Hasher};
 use std::os::raw::c_void;
 
 pub type Value = Vec<u8>;
 pub type Entry<'a> = (&'a Key, &'a Value);
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Key {
     data: Vec<u8>,
 }
@@ -41,12 +41,12 @@ impl PartialEq for RawKey {
     fn eq(&self, other: &Self) -> bool {
         self.len() == other.len()
             && unsafe {
-            0 == memcmp(
-                &self.data[0] as *const u8 as *const c_void,
-                &other.data[0] as *const u8 as *const c_void,
-                self.len(),
-            )
-        }
+                0 == memcmp(
+                    &self.data[0] as *const u8 as *const c_void,
+                    &other.data[0] as *const u8 as *const c_void,
+                    self.len(),
+                )
+            }
     }
 }
 
