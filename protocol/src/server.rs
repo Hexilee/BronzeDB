@@ -1,6 +1,6 @@
 use super::request::Action::{self, *};
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
-use engine::status;
+use engine::err;
 use std::io::{self, Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::sync::{Arc, RwLock};
@@ -14,11 +14,11 @@ pub trait Service: Send + Sync {
 }
 
 pub trait TcpListenerExt {
-    fn serve<S: Service + 'static>(&mut self, service: S) -> status::Result<()>;
+    fn serve<S: Service + 'static>(&mut self, service: S) -> err::Result<()>;
 }
 
 impl TcpListenerExt for TcpListener {
-    fn serve<S: Service + 'static>(&mut self, service: S) -> status::Result<()> {
+    fn serve<S: Service + 'static>(&mut self, service: S) -> err::Result<()> {
         let shared_service = Arc::new(RwLock::new(service));
         for stream in self.incoming() {
             let service = shared_service.clone();
@@ -31,7 +31,7 @@ impl TcpListenerExt for TcpListener {
 fn handle_stream<S: Service + 'static>(
     service: Arc<RwLock<S>>,
     mut stream: TcpStream,
-) -> status::Result<()> {
+) -> err::Result<()> {
     let mut ctx = Context::new(stream);
     loop {
         match ctx.wait_for_request()? {
@@ -40,8 +40,8 @@ fn handle_stream<S: Service + 'static>(
             Delete => service.write()?.on_delete(&mut ctx)?,
             Scan => service.read()?.on_scan(&mut ctx)?,
             Unknown => {
-                break Err(status::Error::new(
-                    status::StatusCode::UnknownAction,
+                break Err(err::Error::new(
+                    err::StatusCode::UnknownAction,
                     "unknown action",
                 ));
             }

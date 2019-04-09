@@ -96,7 +96,6 @@ impl Hash for Key {
 
 #[cfg(test)]
 mod tests {
-    use super::RawKey;
     use std::cmp::Ordering::*;
     use std::cmp::PartialOrd;
 

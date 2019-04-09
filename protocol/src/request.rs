@@ -1,6 +1,6 @@
 use crate::{MAX_KEY, MAX_KEY_LEN, MAX_VALUE_LEN, MIN_KEY};
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
-use engine::status;
+use engine::err;
 use std::io::{self, Read, Write};
 use std::ops::Deref;
 
@@ -100,7 +100,7 @@ impl<T: Deref<Target = [u8]>> Request<T> {
 }
 
 impl Request<Vec<u8>> {
-    pub fn read_from(mut reader: impl Read) -> status::Result<Self> {
+    pub fn read_from(mut reader: impl Read) -> err::Result<Self> {
         let action = reader.read_u8()?.into();
         match action {
             Action::Set => {
@@ -153,8 +153,8 @@ impl Request<Vec<u8>> {
                     },
                 })
             }
-            Action::Unknown => Err(status::Error::new(
-                status::StatusCode::UnknownAction,
+            Action::Unknown => Err(err::Error::new(
+                err::StatusCode::UnknownAction,
                 "action is unknown",
             )),
         }
