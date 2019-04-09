@@ -1,8 +1,8 @@
-use engine::util::{Entry, Key, Value};
-use engine::Engine;
-use engine::{err, Scan};
+use engine::{Engine, Scanner};
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock, RwLockReadGuard};
+use util::status::{Error, Result, StatusCode};
+use util::types::{Entry, Key, Value};
 
 #[derive(Clone)]
 pub struct EngineImpl {
@@ -18,26 +18,26 @@ impl EngineImpl {
 }
 
 impl Engine for EngineImpl {
-    fn set(&mut self, key: Key, value: Vec<u8>) -> err::Result<()> {
+    fn set(&mut self, key: Key, value: Vec<u8>) -> Result<()> {
         self.inner.write()?.insert(key, value);
         Ok(())
     }
 
-    fn get(&self, key: Key) -> err::Result<Value> {
+    fn get(&self, key: Key) -> Result<Value> {
         Ok(self
             .inner
             .read()?
             .get(&key)
-            .ok_or(err::Error::new(
-                err::StatusCode::NotFound,
+            .ok_or(Error::new(
+                StatusCode::NotFound,
                 format!("key {:?} not found", &key),
             ))?
             .clone())
     }
 
-    fn delete(&mut self, key: Key) -> err::Result<()> {
-        self.inner.write()?.remove(&key).ok_or(err::Error::new(
-            err::StatusCode::NotFound,
+    fn delete(&mut self, key: Key) -> Result<()> {
+        self.inner.write()?.remove(&key).ok_or(Error::new(
+            StatusCode::NotFound,
             format!("key {:?} not found", &key),
         ))?;
         Ok(())
@@ -47,7 +47,7 @@ impl Engine for EngineImpl {
         &self,
         lower_bound: Option<Key>,
         upper_bound: Option<Key>,
-    ) -> err::Result<Box<dyn Scan + '_>> {
+    ) -> Result<Box<dyn Scanner + '_>> {
         let guard: RwLockReadGuard<'_, HashMap<Key, Value>> = self.inner.read()?;
         let mut scan = GuardScan {
             guard,
@@ -85,7 +85,7 @@ impl GuardScan<'_> {
     }
 }
 
-impl Scan for GuardScan<'_> {
+impl Scanner for GuardScan<'_> {
     fn size(&self) -> usize {
         self.size
     }
