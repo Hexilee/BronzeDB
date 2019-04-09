@@ -8,7 +8,7 @@ use std::os::raw::c_void;
 pub type Value = Vec<u8>;
 pub type Entry<'a> = (&'a Key, &'a Value);
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct Key {
     data: Vec<u8>,
 }

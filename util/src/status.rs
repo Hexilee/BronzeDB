@@ -1,14 +1,29 @@
 use std::fmt::{Display, Formatter};
 use std::io;
 use std::sync::PoisonError;
+use std::u8::MAX;
 
 #[derive(Debug, Copy, Clone)]
 pub enum StatusCode {
-    Ok = 0,
+    OK = 0,
     IOError = 1,
     UnknownAction = 2,
     PoisonError = 3,
     NotFound = 4,
+    UnknownStatusCode = MAX as isize,
+}
+
+impl From<u8> for StatusCode {
+    fn from(code: u8) -> Self {
+        match code {
+            0 => StatusCode::OK,
+            1 => StatusCode::IOError,
+            2 => StatusCode::UnknownAction,
+            3 => StatusCode::PoisonError,
+            4 => StatusCode::NotFound,
+            _ => StatusCode::UnknownStatusCode,
+        }
+    }
 }
 
 impl ToString for StatusCode {

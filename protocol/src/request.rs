@@ -3,6 +3,7 @@ use crate::{MAX_KEY, MAX_KEY_LEN, MAX_VALUE_LEN, MIN_KEY};
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 use std::io::{self, Read, Write};
 use std::ops::Deref;
+use std::u8::MAX;
 use util::status::{Error, Result, StatusCode};
 
 #[derive(Debug, Copy, Clone)]
@@ -11,7 +12,7 @@ pub enum Action {
     Get = 1,
     Delete = 2,
     Scan = 3,
-    Unknown = 4,
+    Unknown = MAX as isize,
 }
 
 impl From<u8> for Action {
