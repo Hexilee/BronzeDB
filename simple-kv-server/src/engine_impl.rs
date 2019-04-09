@@ -73,7 +73,7 @@ struct GuardScanner<'a> {
 }
 
 impl GuardScanner<'_> {
-    fn entries(&self) -> Box<dyn Iterator<Item = Entry> + '_> {
+    fn entries(&self) -> Box<dyn Iterator<Item = Result<Entry>> + '_> {
         let mut entries: Box<dyn Iterator<Item = EntryRef>> = Box::new(self.guard.iter());
         if let Some(lower_key) = self.lower_bound.as_ref() {
             entries = Box::new(entries.filter(move |(key, _)| *key >= lower_key))
@@ -81,7 +81,7 @@ impl GuardScanner<'_> {
         if let Some(upper_key) = self.upper_bound.as_ref() {
             entries = Box::new(entries.filter(move |(key, _)| *key <= upper_key))
         }
-        Box::new(entries.map(|(key, value)| (key.clone(), value.clone())))
+        Box::new(entries.map(|(key, value)| Ok((key.clone(), value.clone()))))
     }
 }
 
@@ -90,7 +90,7 @@ impl Scanner for GuardScanner<'_> {
         self.size
     }
 
-    fn iter(&self) -> Box<dyn Iterator<Item = Entry> + '_> {
+    fn iter(&self) -> Box<dyn Iterator<Item = Result<Entry>> + '_> {
         self.entries()
     }
 }
