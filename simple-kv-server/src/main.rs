@@ -11,7 +11,7 @@ use util::types::{Entry, Key, Value};
 fn handle_client<T: Engine>(mut stream: TcpStream, mut engine: T) -> Result<()> {
     loop {
         match Request::read_from(&mut stream)? {
-            Get { key } => match engine.get(key.into()) {
+            Get(key) => match engine.get(key.into()) {
                 Ok(value) => {
                     Response::SingleValue { status: OK, value }.write_to(&mut stream)?;
                 }
@@ -19,7 +19,7 @@ fn handle_client<T: Engine>(mut stream: TcpStream, mut engine: T) -> Result<()> 
                     Response::Status(err.code).write_to(&mut stream)?;
                 }
             },
-            Set { key, value } => match engine.set(key.into(), value) {
+            Set(key, value) => match engine.set(key.into(), value) {
                 Ok(_) => {
                     Response::Status(OK).write_to(&mut stream)?;
                 }
@@ -27,7 +27,7 @@ fn handle_client<T: Engine>(mut stream: TcpStream, mut engine: T) -> Result<()> 
                     Response::Status(err.code).write_to(&mut stream)?;
                 }
             },
-            Delete { key } => match engine.delete(key.into()) {
+            Delete(key) => match engine.delete(key.into()) {
                 Ok(value) => {
                     Response::Status(OK).write_to(&mut stream)?;
                 }
@@ -36,9 +36,21 @@ fn handle_client<T: Engine>(mut stream: TcpStream, mut engine: T) -> Result<()> 
                 }
             },
             Scan {
-                upper_bound,
                 lower_bound,
-            } => match engine.scan(lower_bound.into(), upper_bound.into()) {},
+                upper_bound,
+            } => match engine.scan(lower_bound, upper_bound) {
+                Ok(scanner) => {
+                    Response::MultiKV {
+                        status: OK,
+                        size: scanner.size(),
+                        iter: scanner.iter(),
+                    }
+                    .write_to(&mut stream)?;
+                }
+                Err(err) => {
+                    Response::Status(err.code).write_to(&mut stream)?;
+                }
+            },
             Unknown => break Err(Error::new(UnknownAction, "unknown action")),
         }
     }
