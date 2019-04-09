@@ -1,4 +1,4 @@
-use crate::util::{ReadKVExt, WriteKVExt};
+use crate::ext::{ReadKVExt, WriteKVExt};
 use crate::{MAX_KEY, MAX_KEY_LEN, MAX_VALUE_LEN, MIN_KEY};
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 use std::io::{self, Read, Write};

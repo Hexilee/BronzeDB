@@ -14,6 +14,6 @@ mod tests {
     }
 }
 
+pub mod ext;
 pub mod request;
 pub mod response;
-pub mod util;
