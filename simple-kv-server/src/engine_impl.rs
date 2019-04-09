@@ -49,7 +49,7 @@ impl Engine for EngineImpl {
         upper_bound: Option<Key>,
     ) -> Result<Box<dyn Scanner + '_>> {
         let guard: RwLockReadGuard<'_, HashMap<Key, Value>> = self.inner.read()?;
-        let mut scan = GuardScan {
+        let mut scan = GuardScanner {
             guard,
             lower_bound,
             upper_bound,
@@ -65,14 +65,14 @@ impl Engine for EngineImpl {
     }
 }
 
-struct GuardScan<'a> {
+struct GuardScanner<'a> {
     guard: RwLockReadGuard<'a, HashMap<Key, Value>>,
     size: usize,
     lower_bound: Option<Key>,
     upper_bound: Option<Key>,
 }
 
-impl GuardScan<'_> {
+impl GuardScanner<'_> {
     fn entries(&'_ self) -> Box<dyn Iterator<Item = Entry<'_>> + '_> {
         let mut entries: Box<dyn Iterator<Item = Entry>> = Box::new(self.guard.iter());
         if let Some(lower_key) = self.lower_bound.as_ref() {
@@ -85,7 +85,7 @@ impl GuardScan<'_> {
     }
 }
 
-impl Scanner for GuardScan<'_> {
+impl Scanner for GuardScanner<'_> {
     fn size(&self) -> usize {
         self.size
     }
