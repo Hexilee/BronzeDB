@@ -1,3 +1,4 @@
+use crate::util::WriteKVExt;
 use crate::{MAX_KEY, MAX_KEY_LEN, MAX_VALUE_LEN, MIN_KEY};
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 use std::io::{self, Read, Write};
@@ -48,29 +49,18 @@ impl<T: Deref<Target = [u8]>> Request<T> {
         match self {
             Request::Set { key, value } => {
                 writer.write_u8(Action::Set as u8)?;
-                debug_assert!(key.len() <= MAX_KEY_LEN);
-                debug_assert!(value.len() <= MAX_VALUE_LEN);
-                writer.write_u16::<BigEndian>(key.len() as u16)?;
-                writer.write_u16::<BigEndian>(value.len() as u16)?;
-                writer.write_all(&key)?;
-                writer.write_all(&value)?;
-                counter += 4 + key.len() + value.len();
+                counter += writer.write_key(&key)?;
+                counter += writer.write_value(&value)?;
             }
 
             Request::Get { key } => {
                 writer.write_u8(Action::Get as u8)?;
-                debug_assert!(key.len() <= MAX_KEY_LEN);
-                writer.write_u16::<BigEndian>(key.len() as u16)?;
-                writer.write_all(&key)?;
-                counter += 2 + key.len()
+                counter += writer.write_key(&key)?;
             }
 
             Request::Delete { key } => {
                 writer.write_u8(Action::Delete as u8)?;
-                debug_assert!(key.len() <= MAX_KEY_LEN);
-                writer.write_u16::<BigEndian>(key.len() as u16)?;
-                writer.write_all(&key)?;
-                counter += 2 + key.len()
+                counter += writer.write_key(&key)?;
             }
 
             Request::Scan {
@@ -86,13 +76,8 @@ impl<T: Deref<Target = [u8]>> Request<T> {
                     Some(key) => key.deref(),
                     None => MIN_KEY,
                 };
-                debug_assert!(lower_key.len() <= MAX_KEY_LEN);
-                debug_assert!(upper_key.len() <= MAX_KEY_LEN);
-                writer.write_u16::<BigEndian>(lower_key.len() as u16)?;
-                writer.write_u16::<BigEndian>(upper_key.len() as u16)?;
-                writer.write_all(&lower_key)?;
-                writer.write_all(&upper_key)?;
-                counter += 4 + lower_key.len() + upper_key.len();
+                counter += writer.write_key(&lower_key)?;
+                counter += writer.write_key(&upper_key)?;
             }
         }
         Ok(counter)
