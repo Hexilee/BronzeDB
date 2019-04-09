@@ -56,9 +56,9 @@ impl Engine for EngineImpl {
             size: 0,
         };
 
-        let counter = 0;
+        let mut counter = 0;
         for _ in scan.filter_entries(Box::new(scan.guard.iter())) {
-            counter += 0;
+            counter += 1;
         }
         scan.size = counter;
         Ok(Box::new(scan))
@@ -73,10 +73,10 @@ struct GuardScan<'a> {
 }
 
 impl GuardScan<'_> {
-    fn filter_entries(
-        &self,
-        mut entries: Box<dyn Iterator<Item = Entry<'_>>>,
-    ) -> Box<dyn Iterator<Item = Entry>> {
+    fn filter_entries<'a>(
+        &'a self,
+        mut entries: Box<dyn Iterator<Item = Entry<'a>> + 'a>,
+    ) -> Box<dyn Iterator<Item = Entry<'a>> + 'a> {
         if let Some(lower_key) = self.lower_bound.as_ref() {
             entries = Box::new(entries.filter(move |(key, _)| *key >= lower_key))
         }
@@ -92,7 +92,7 @@ impl Scan for GuardScan<'_> {
         self.size
     }
 
-    fn iter(&self) -> Box<Iterator<Item=Entry<'_>>> {
+    fn iter(&self) -> Box<Iterator<Item = Entry<'_>>> {
         unimplemented!()
     }
 }
