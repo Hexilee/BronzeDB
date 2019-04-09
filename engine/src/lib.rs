@@ -14,5 +14,5 @@ pub trait Engine {
 
 pub trait Scanner {
     fn size(&self) -> usize;
-    fn iter(&self) -> Box<dyn Iterator<Item = Entry> + '_>;
+    fn iter(&self) -> Box<dyn Iterator<Item = Result<Entry>> + '_>;
 }
