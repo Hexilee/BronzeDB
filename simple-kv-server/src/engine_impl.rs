@@ -43,12 +43,12 @@ impl Engine for EngineImpl {
         Ok(())
     }
 
-    fn scan<'a>(
-        &'a self,
+    fn scan(
+        &self,
         lower_bound: Option<Key>,
         upper_bound: Option<Key>,
-    ) -> status::Result<Box<dyn Scan<'a>>> {
-        let guard = self.inner.read()?;
+    ) -> status::Result<Box<dyn Scan + '_>> {
+        let guard: RwLockReadGuard<'_, HashMap<Key, Value>> = self.inner.read()?;
         let mut scan = GuardScan {
             guard,
             lower_bound,
@@ -72,10 +72,10 @@ struct GuardScan<'a> {
     upper_bound: Option<Key>,
 }
 
-impl<'a> GuardScan<'a> {
+impl GuardScan<'_> {
     fn filter_entries(
         &self,
-        mut entries: Box<dyn Iterator<Item = Entry>>,
+        mut entries: Box<dyn Iterator<Item = Entry<'_>>>,
     ) -> Box<dyn Iterator<Item = Entry>> {
         if let Some(lower_key) = self.lower_bound.as_ref() {
             entries = Box::new(entries.filter(move |(key, _)| *key >= lower_key))
@@ -87,12 +87,12 @@ impl<'a> GuardScan<'a> {
     }
 }
 
-impl<'a> Scan<'a> for GuardScan<'a> {
+impl Scan for GuardScan<'_> {
     fn size(&self) -> usize {
         self.size
     }
 
-    fn iter(&'a self) -> Box<Iterator<Item = (&'a Key, &'a Value)>> {
+    fn iter(&self) -> Box<Iterator<Item=Entry<'_>>> {
         unimplemented!()
     }
 }
