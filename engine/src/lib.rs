@@ -1,17 +1,15 @@
-#[macro_use(matches)]
-extern crate matches;
-
-use crate::util::{Entry, Key, Value};
+use util::status::Result;
+use util::types::{Entry, Key, Value};
 
 pub trait Engine {
-    fn set(&mut self, key: Key, value: Value) -> err::Result<()>;
-    fn get(&self, key: Key) -> err::Result<Value>;
-    fn delete(&mut self, key: Key) -> err::Result<()>;
+    fn set(&mut self, key: Key, value: Value) -> Result<()>;
+    fn get(&self, key: Key) -> Result<Value>;
+    fn delete(&mut self, key: Key) -> Result<()>;
     fn scan(
         &self,
         lower_bound: Option<Key>,
         upper_bound: Option<Key>,
-    ) -> err::Result<Box<dyn Scan + '_>>;
+    ) -> Result<Box<dyn Scan + '_>>;
 }
 
 pub trait Scan {
