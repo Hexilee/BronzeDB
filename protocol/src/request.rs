@@ -1,8 +1,8 @@
 use crate::{MAX_KEY, MAX_KEY_LEN, MAX_VALUE_LEN, MIN_KEY};
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
-use engine::err;
 use std::io::{self, Read, Write};
 use std::ops::Deref;
+use util::status::{Error, Result, StatusCode};
 
 #[derive(Debug, Copy, Clone)]
 pub enum Action {
@@ -100,7 +100,7 @@ impl<T: Deref<Target = [u8]>> Request<T> {
 }
 
 impl Request<Vec<u8>> {
-    pub fn read_from(mut reader: impl Read) -> err::Result<Self> {
+    pub fn read_from(mut reader: impl Read) -> Result<Self> {
         let action = reader.read_u8()?.into();
         match action {
             Action::Set => {
@@ -153,10 +153,7 @@ impl Request<Vec<u8>> {
                     },
                 })
             }
-            Action::Unknown => Err(err::Error::new(
-                err::StatusCode::UnknownAction,
-                "action is unknown",
-            )),
+            Action::Unknown => Err(Error::new(StatusCode::UnknownAction, "action is unknown")),
         }
     }
 }

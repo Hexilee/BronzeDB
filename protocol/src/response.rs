@@ -1,14 +1,8 @@
-use engine::err;
-use engine::util::Value;
+use util::status::StatusCode;
+use util::types::Value;
 
-pub enum Response<'a> {
-    Status(err::StatusCode),
-    SingleValue {
-        status: err::StatusCode,
-        value: Value
-    },
-    MultiKV {
-
-    }
+pub enum Response {
+    Status(StatusCode),
+    SingleValue { status: StatusCode, value: Value },
+    MultiKV {},
 }
-
