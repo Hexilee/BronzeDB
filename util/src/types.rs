@@ -6,7 +6,8 @@ use std::ops::Deref;
 use std::os::raw::c_void;
 
 pub type Value = Vec<u8>;
-pub type Entry<'a> = (&'a Key, &'a Value);
+pub type Entry = (Key, Value);
+pub type EntryRef<'a> = (&'a Key, &'a Value);
 
 #[derive(Debug, Clone, Default)]
 pub struct Key {
