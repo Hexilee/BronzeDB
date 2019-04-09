@@ -4,13 +4,29 @@ use std::sync::PoisonError;
 use std::u8::MAX;
 
 #[derive(Debug, Copy, Clone)]
-pub enum StatusCode {
+pub enum Status {
     OK = 0,
     IOError = 1,
     UnknownAction = 2,
     PoisonError = 3,
     NotFound = 4,
     UnknownStatusCode = MAX as isize,
+}
+
+pub enum StatusOk {
+
+}
+
+pub enum StatusFail {
+
+}
+
+pub enum StatusError {
+
+}
+
+pub enum StatusException {
+
 }
 
 impl From<u8> for StatusCode {
