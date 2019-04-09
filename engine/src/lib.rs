@@ -9,10 +9,10 @@ pub trait Engine {
         &self,
         lower_bound: Option<Key>,
         upper_bound: Option<Key>,
-    ) -> Result<Box<dyn Scanner>>;
+    ) -> Result<Box<dyn Scanner + '_>>;
 }
 
 pub trait Scanner {
     fn size(&self) -> usize;
-    fn iter(&self) -> Box<dyn Iterator<Item = Entry>>;
+    fn iter(&self) -> Box<dyn Iterator<Item = Entry> + '_>;
 }

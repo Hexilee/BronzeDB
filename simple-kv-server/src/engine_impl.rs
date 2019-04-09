@@ -2,7 +2,7 @@ use engine::{Engine, Scanner};
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock, RwLockReadGuard};
 use util::status::{Error, Result, StatusCode};
-use util::types::{Entry, Key, Value};
+use util::types::{Entry, EntryRef, Key, Value};
 
 #[derive(Clone)]
 pub struct EngineImpl {
@@ -73,15 +73,15 @@ struct GuardScanner<'a> {
 }
 
 impl GuardScanner<'_> {
-    fn entries(&'_ self) -> Box<dyn Iterator<Item = Entry<'_>> + '_> {
-        let mut entries: Box<dyn Iterator<Item = Entry>> = Box::new(self.guard.iter());
+    fn entries(&self) -> Box<dyn Iterator<Item = Entry> + '_> {
+        let mut entries: Box<dyn Iterator<Item = EntryRef>> = Box::new(self.guard.iter());
         if let Some(lower_key) = self.lower_bound.as_ref() {
             entries = Box::new(entries.filter(move |(key, _)| *key >= lower_key))
         }
         if let Some(upper_key) = self.upper_bound.as_ref() {
             entries = Box::new(entries.filter(move |(key, _)| *key <= upper_key))
         }
-        entries
+        Box::new(entries.map(|(key, value)| (key.clone(), value.clone())))
     }
 }
 
@@ -90,7 +90,7 @@ impl Scanner for GuardScanner<'_> {
         self.size
     }
 
-    fn iter(&self) -> Box<dyn Iterator<Item = Entry<'_>> + '_> {
+    fn iter(&self) -> Box<dyn Iterator<Item = Entry> + '_> {
         self.entries()
     }
 }
