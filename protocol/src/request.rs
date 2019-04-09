@@ -1,4 +1,4 @@
-use crate::util::WriteKVExt;
+use crate::util::{ReadKVExt, WriteKVExt};
 use crate::{MAX_KEY, MAX_KEY_LEN, MAX_VALUE_LEN, MIN_KEY};
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 use std::io::{self, Read, Write};
@@ -88,43 +88,19 @@ impl Request<Vec<u8>> {
     pub fn read_from(mut reader: impl Read) -> Result<Self> {
         let action = reader.read_u8()?.into();
         match action {
-            Action::Set => {
-                let key_len = reader.read_u16::<BigEndian>()?;
-                let value_len = reader.read_u16::<BigEndian>()?;
-                let mut key = Vec::with_capacity(key_len as usize);
-                unsafe { key.set_len(key_len as usize) };
-                reader.read_exact(key.as_mut_slice())?;
-                let mut value = Vec::with_capacity(value_len as usize);
-                unsafe { value.set_len(value_len as usize) };
-                reader.read_exact(value.as_mut_slice())?;
-                Ok(Request::<Vec<u8>>::Set { key, value })
-            }
-
-            Action::Get => {
-                let key_len = reader.read_u16::<BigEndian>()?;
-                let mut key = Vec::with_capacity(key_len as usize);
-                unsafe { key.set_len(key_len as usize) };
-                reader.read_exact(key.as_mut_slice())?;
-                Ok(Request::<Vec<u8>>::Get { key })
-            }
-
-            Action::Delete => {
-                let key_len = reader.read_u16::<BigEndian>()?;
-                let mut key = Vec::with_capacity(key_len as usize);
-                unsafe { key.set_len(key_len as usize) };
-                reader.read_exact(key.as_mut_slice())?;
-                Ok(Request::<Vec<u8>>::Delete { key })
-            }
-
+            Action::Set => Ok(Request::<Vec<u8>>::Set {
+                key: reader.read_key()?,
+                value: reader.read_value()?,
+            }),
+            Action::Get => Ok(Request::<Vec<u8>>::Get {
+                key: reader.read_key()?,
+            }),
+            Action::Delete => Ok(Request::<Vec<u8>>::Delete {
+                key: reader.read_key()?,
+            }),
             Action::Scan => {
-                let lower_bound_len = reader.read_u16::<BigEndian>()?;
-                let upper_bound_len = reader.read_u16::<BigEndian>()?;
-                let mut lower_bound = Vec::with_capacity(lower_bound_len as usize);
-                unsafe { lower_bound.set_len(lower_bound_len as usize) };
-                reader.read_exact(lower_bound.as_mut_slice())?;
-                let mut upper_bound = Vec::with_capacity(upper_bound_len as usize);
-                unsafe { upper_bound.set_len(upper_bound_len as usize) };
-                reader.read_exact(upper_bound.as_mut_slice())?;
+                let mut lower_bound = reader.read_key()?;
+                let mut upper_bound = reader.read_key()?;
                 Ok(Request::<Vec<u8>>::Scan {
                     lower_bound: if lower_bound.as_slice() == MIN_KEY {
                         None

@@ -37,6 +37,12 @@ impl From<&[u8]> for &RawKey {
     }
 }
 
+impl From<Vec<u8>> for Key {
+    fn from(data: Vec<u8>) -> Self {
+        Self { data }
+    }
+}
+
 impl PartialEq for RawKey {
     fn eq(&self, other: &Self) -> bool {
         self.len() == other.len()
