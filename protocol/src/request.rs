@@ -1,11 +1,11 @@
 use crate::ext::{ReadKVExt, WriteKVExt};
-use crate::{MAX_KEY, MAX_KEY_LEN, MAX_VALUE_LEN, MIN_KEY};
-use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
+use crate::{MAX_KEY, MIN_KEY};
+use byteorder::{ReadBytesExt, WriteBytesExt};
 use std::io::{self, Read, Write};
 use std::ops::Deref;
 use std::u8::MAX;
-use util::status::{Error, Result, StatusCode};
-use util::types::{Entry, Key, Value};
+use util::status::Result;
+use util::types::{Key, Value};
 
 #[derive(Debug, Copy, Clone)]
 pub enum Action {
@@ -134,7 +134,7 @@ mod tests {
         let delete_request = Request::Delete(b"name"[..].to_vec().into());
         assert_eq!(7usize, delete_request.write_to(&mut buf).unwrap());
         let new_request = Request::read_from(&mut Cursor::new(buf)).unwrap();
-        assert!(matches!(&new_request, Request::Delete(ref key)));
+        assert!(matches!(&new_request, Request::Delete(ref _key)));
         if let Request::Delete(ref key) = new_request {
             assert_eq!(&b"name"[..], key.as_slice());
         }
@@ -146,7 +146,7 @@ mod tests {
         let get_request = Request::Get(b"name"[..].to_vec().into());
         assert_eq!(7usize, get_request.write_to(&mut buf).unwrap());
         let new_request = Request::read_from(&mut Cursor::new(buf)).unwrap();
-        assert!(matches!(&new_request, Request::Get(ref key)));
+        assert!(matches!(&new_request, Request::Get(ref _key)));
         if let Request::Get(ref key) = new_request {
             assert_eq!(&b"name"[..], key.as_slice());
         }
@@ -161,14 +161,14 @@ mod tests {
         };
         assert_eq!(265usize, scan_request.write_to(&mut buf).unwrap());
         let new_request = Request::read_from(&mut Cursor::new(buf)).unwrap();
-        assert!(matches!(&new_request, Request::Scan{ref lower_bound, ref upper_bound}));
+        assert!(matches!(&new_request, Request::Scan{lower_bound: _, upper_bound: _}));
         if let Request::Scan {
             lower_bound,
             upper_bound,
         } = new_request
         {
             assert!(matches!(lower_bound, None));
-            assert!(matches!(upper_bound, Some(key)));
+            assert!(matches!(upper_bound, Some(_key)));
         }
     }
 
@@ -179,7 +179,7 @@ mod tests {
             Request::Set(b"last_name"[..].to_vec().into(), b"Lee"[..].to_vec().into());
         assert_eq!(17usize, set_request.write_to(&mut buf).unwrap());
         let new_request = Request::read_from(&mut Cursor::new(buf)).unwrap();
-        assert!(matches!(&new_request, Request::Set(ref key, ref value)));
+        assert!(matches!(&new_request, Request::Set(ref _key, ref _value)));
         if let Request::Set(ref key, ref value) = new_request {
             assert_eq!(&b"last_name"[..], key.as_slice());
             assert_eq!(&b"Lee"[..], value.as_slice());

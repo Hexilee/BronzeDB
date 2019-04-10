@@ -1,11 +1,10 @@
 use super::request::Action::{self, *};
 use crate::ext::{ReadKVExt, WriteKVExt};
-use crate::{MAX_KEY, MAX_KEY_LEN, MAX_VALUE_LEN, MIN_KEY};
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 use std::io::{self, Read, Write};
 use util::status::StatusCode::{self, *};
 use util::status::{Error, Result};
-use util::types::{Entry, Key, Value};
+use util::types::{Entry, Value};
 
 pub enum Response<'a> {
     Status(StatusCode),
@@ -110,9 +109,9 @@ fn pair_result(key: io::Result<Vec<u8>>, value: io::Result<Vec<u8>>) -> Result<E
 #[cfg(test)]
 mod tests {
     use super::Response::{self, *};
-    use crate::request::Action::{self, *};
+    use crate::request::Action::*;
     use std::io::Cursor;
-    use util::status::StatusCode::{self, *};
+    use util::status::StatusCode;
 
     #[test]
     fn status_not_ok() {
