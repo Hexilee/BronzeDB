@@ -126,7 +126,6 @@ mod tests {
     #[test]
     fn status_not_ok() {
         let status_set: Vec<StatusCode> = (1u8..5).map(Into::into).collect();
-        dbg!(&status_set);
         for (index, resp) in status_set
             .iter()
             .map(|status| Response::Status(*status))
@@ -135,8 +134,6 @@ mod tests {
             transfer_move!(new_resp, resp, 1usize, Get);
             assert!(matches!(new_resp, Status(ref _x)));
             if let Status(code) = new_resp {
-                dbg!(status_set[index]);
-                dbg!(code);
                 assert_eq!(status_set[index], code);
             }
         }
