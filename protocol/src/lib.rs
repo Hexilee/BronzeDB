@@ -1,4 +1,3 @@
-// #[macro_use]
 extern crate matches;
 
 const MAX_KEY_LEN: usize = 1 << 8;

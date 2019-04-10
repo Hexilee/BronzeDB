@@ -135,4 +135,17 @@ mod tests {
             }
         }
     }
+
+    #[test]
+    fn set_ok() {
+        let resp = Status(StatusCode::OK);
+        let mut buffer = Vec::new();
+        assert_eq!(1usize, resp.write_to(&mut buffer).unwrap());
+        let mut reader = Cursor::new(buffer);
+        let resp = Response::read_from(&mut reader, Set).unwrap();
+        assert!(matches!(resp, Status(ref _x)));
+        if let Status(code) = resp {
+            assert_eq!(StatusCode::OK, code);
+        }
+    }
 }

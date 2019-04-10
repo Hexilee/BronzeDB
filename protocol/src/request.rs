@@ -119,6 +119,19 @@ mod tests {
     use super::Request;
     use matches::matches;
     use std::io::{self, Cursor, Read};
+    use util::status::Result;
+
+    pub trait RequestTestExt: Sized {
+        fn transfer_move(self) -> Result<(Self, usize)>;
+    }
+
+    impl RequestTestExt for Request {
+        fn transfer_move(self) -> Result<(Self, usize)> {
+            let mut buf = Vec::new();
+            let bytes = self.write_to(&mut buf)?;
+            Ok((Request::read_from(&mut Cursor::new(buf))?, bytes))
+        }
+    }
 
     #[test]
     fn change_vec_as_mut_slice() {
@@ -131,10 +144,10 @@ mod tests {
 
     #[test]
     fn request_delete_test() {
-        let mut buf = Vec::new();
-        let delete_request = Request::Delete(b"name"[..].to_vec().into());
-        assert_eq!(7usize, delete_request.write_to(&mut buf).unwrap());
-        let new_request = Request::read_from(&mut Cursor::new(buf)).unwrap();
+        let (new_request, bytes) = Request::Delete(b"name"[..].to_vec().into())
+            .transfer_move()
+            .unwrap();
+        assert_eq!(7usize, bytes);
         assert!(matches!(&new_request, Request::Delete(ref _key)));
         if let Request::Delete(ref key) = new_request {
             assert_eq!(&b"name"[..], key.as_slice());
@@ -143,10 +156,10 @@ mod tests {
 
     #[test]
     fn request_get_test() {
-        let mut buf = Vec::new();
-        let get_request = Request::Get(b"name"[..].to_vec().into());
-        assert_eq!(7usize, get_request.write_to(&mut buf).unwrap());
-        let new_request = Request::read_from(&mut Cursor::new(buf)).unwrap();
+        let (new_request, bytes) = Request::Get(b"name"[..].to_vec().into())
+            .transfer_move()
+            .unwrap();
+        assert_eq!(7usize, bytes);
         assert!(matches!(&new_request, Request::Get(ref _key)));
         if let Request::Get(ref key) = new_request {
             assert_eq!(&b"name"[..], key.as_slice());
@@ -155,13 +168,13 @@ mod tests {
 
     #[test]
     fn request_scan_test() {
-        let mut buf = Vec::new();
-        let scan_request = Request::Scan {
+        let (new_request, bytes) = Request::Scan {
             lower_bound: None,
             upper_bound: Some(b"name"[..].to_vec().into()),
-        };
-        assert_eq!(265usize, scan_request.write_to(&mut buf).unwrap());
-        let new_request = Request::read_from(&mut Cursor::new(buf)).unwrap();
+        }
+        .transfer_move()
+        .unwrap();
+        assert_eq!(265usize, bytes);
         assert!(matches!(&new_request, Request::Scan{lower_bound: _, upper_bound: _}));
         if let Request::Scan {
             lower_bound,
@@ -175,11 +188,11 @@ mod tests {
 
     #[test]
     fn request_set_test() {
-        let mut buf = Vec::new();
-        let set_request =
-            Request::Set(b"last_name"[..].to_vec().into(), b"Lee"[..].to_vec().into());
-        assert_eq!(17usize, set_request.write_to(&mut buf).unwrap());
-        let new_request = Request::read_from(&mut Cursor::new(buf)).unwrap();
+        let (new_request, bytes) =
+            Request::Set(b"last_name"[..].to_vec().into(), b"Lee"[..].to_vec().into())
+                .transfer_move()
+                .unwrap();
+        assert_eq!(17usize, bytes);
         assert!(matches!(&new_request, Request::Set(ref _key, ref _value)));
         if let Request::Set(ref key, ref value) = new_request {
             assert_eq!(&b"last_name"[..], key.as_slice());
