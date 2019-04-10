@@ -147,4 +147,31 @@ mod tests {
             assert_eq!(StatusCode::OK, code);
         }
     }
+
+    #[test]
+    fn delete_ok() {
+        transfer_move!(new_resp, Status(StatusCode::OK), 1usize, Delete);
+        assert!(matches!(new_resp, Status(ref _x)));
+        if let Status(code) = new_resp {
+            assert_eq!(StatusCode::OK, code);
+        }
+    }
+
+    #[test]
+    fn get_ok() {
+        transfer_move!(
+            new_resp,
+            SingleValue {
+                status: StatusCode::OK,
+                value: b"hexi".to_vec(),
+            },
+            7usize,
+            Get
+        );
+        assert!(matches!(new_resp, SingleValue{status: _, value: _}));
+        if let SingleValue { status, value } = new_resp {
+            assert_eq!(StatusCode::OK, status);
+            assert_eq!(&b"hexi"[..], value.as_slice());
+        }
+    }
 }
