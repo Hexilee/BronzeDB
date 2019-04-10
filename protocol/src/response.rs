@@ -72,7 +72,7 @@ impl<'a> Response<'a> {
                     format!("unknown action: {:?}", request_action),
                 )),
             },
-            code => Err(Error::new(code, "not ok")),
+            code => Ok(Response::Status(code)),
         }
     }
 }
@@ -105,4 +105,30 @@ impl Iterator for ReaderIter<'_> {
 
 fn pair_result(key: io::Result<Vec<u8>>, value: io::Result<Vec<u8>>) -> Result<Entry> {
     Ok((key?.into(), value?))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::Response::{self, *};
+    use crate::request::Action::{self, *};
+    use std::io::Cursor;
+    use util::status::StatusCode::{self, *};
+
+    #[test]
+    fn status_not_ok() {
+        let status_set: Vec<StatusCode> = (1u8..5).map(Into::into).collect();
+        for (index, resp) in status_set
+            .iter()
+            .map(|status| Response::Status(*status))
+            .enumerate()
+        {
+            let mut buffer = Cursor::new(Vec::new());
+            assert_eq!(2usize, resp.write_to(&mut buffer).unwrap());
+            let resp = Response::read_from(&mut buffer, Get).unwrap();
+            assert!(matches!(resp, Status(ref _x)));
+            if let Status(code) = resp {
+                assert_eq!(status_set[index], code);
+            }
+        }
+    }
 }

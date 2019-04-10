@@ -3,7 +3,7 @@ use std::io;
 use std::sync::PoisonError;
 use std::u8::MAX;
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialOrd, PartialEq)]
 pub enum StatusCode {
     OK = 0,
     IOError = 1,
