@@ -117,16 +117,20 @@ mod tests {
     #[test]
     fn status_not_ok() {
         let status_set: Vec<StatusCode> = (1u8..5).map(Into::into).collect();
+        dbg!(&status_set);
         for (index, resp) in status_set
             .iter()
             .map(|status| Response::Status(*status))
             .enumerate()
         {
-            let mut buffer = Cursor::new(Vec::new());
-            assert_eq!(2usize, resp.write_to(&mut buffer).unwrap());
-            let resp = Response::read_from(&mut buffer, Get).unwrap();
+            let mut buffer = Vec::new();
+            assert_eq!(1usize, resp.write_to(&mut buffer).unwrap());
+            let mut reader = Cursor::new(buffer);
+            let resp = Response::read_from(&mut reader, Get).unwrap();
             assert!(matches!(resp, Status(ref _x)));
             if let Status(code) = resp {
+                dbg!(status_set[index]);
+                dbg!(code);
                 assert_eq!(status_set[index], code);
             }
         }
