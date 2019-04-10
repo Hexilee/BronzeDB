@@ -114,6 +114,15 @@ mod tests {
     use std::io::Cursor;
     use util::status::StatusCode;
 
+    macro_rules! transfer_move {
+        ($new_resp:ident, $origin_resp:expr, $size:expr, $action:expr) => {
+            let mut buffer = Vec::new();
+            assert_eq!($size, $origin_resp.write_to(&mut buffer).unwrap());
+            let mut reader = Cursor::new(buffer);
+            let $new_resp = Response::read_from(&mut reader, $action).unwrap();
+        };
+    }
+
     #[test]
     fn status_not_ok() {
         let status_set: Vec<StatusCode> = (1u8..5).map(Into::into).collect();
@@ -123,12 +132,9 @@ mod tests {
             .map(|status| Response::Status(*status))
             .enumerate()
         {
-            let mut buffer = Vec::new();
-            assert_eq!(1usize, resp.write_to(&mut buffer).unwrap());
-            let mut reader = Cursor::new(buffer);
-            let resp = Response::read_from(&mut reader, Get).unwrap();
-            assert!(matches!(resp, Status(ref _x)));
-            if let Status(code) = resp {
+            transfer_move!(new_resp, resp, 1usize, Get);
+            assert!(matches!(new_resp, Status(ref _x)));
+            if let Status(code) = new_resp {
                 dbg!(status_set[index]);
                 dbg!(code);
                 assert_eq!(status_set[index], code);
@@ -138,13 +144,9 @@ mod tests {
 
     #[test]
     fn set_ok() {
-        let resp = Status(StatusCode::OK);
-        let mut buffer = Vec::new();
-        assert_eq!(1usize, resp.write_to(&mut buffer).unwrap());
-        let mut reader = Cursor::new(buffer);
-        let resp = Response::read_from(&mut reader, Set).unwrap();
-        assert!(matches!(resp, Status(ref _x)));
-        if let Status(code) = resp {
+        transfer_move!(new_resp, Status(StatusCode::OK), 1usize, Set);
+        assert!(matches!(new_resp, Status(ref _x)));
+        if let Status(code) = new_resp {
             assert_eq!(StatusCode::OK, code);
         }
     }
