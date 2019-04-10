@@ -110,6 +110,7 @@ fn pair_result(key: io::Result<Vec<u8>>, value: io::Result<Vec<u8>>) -> Result<E
 mod tests {
     use super::Response::{self, *};
     use crate::request::Action::*;
+    use matches::matches;
     use std::io::Cursor;
     use util::status::StatusCode;
 

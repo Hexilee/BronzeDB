@@ -117,6 +117,7 @@ impl Request {
 #[cfg(test)]
 mod tests {
     use super::Request;
+    use matches::matches;
     use std::io::{self, Cursor, Read};
 
     #[test]
