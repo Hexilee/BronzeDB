@@ -1,7 +1,7 @@
 use super::request::Action::{self, *};
 use crate::ext::{ReadKVExt, WriteKVExt};
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
-use std::io::{self, Read, Write};
+use std::io::{Read, Write};
 use util::status::StatusCode::{self, *};
 use util::status::{Error, Result};
 use util::types::{Entry, Value};
@@ -30,8 +30,8 @@ impl<'a> Response<'a> {
             }
             Response::MultiKV { status, size, iter } => {
                 writer.write_u8(status as u8)?;
-                writer.write_u64::<BigEndian>(size as u64)?;
-                counter += 8;
+                writer.write_u32::<BigEndian>(size as u32)?;
+                counter += 4;
                 for result in iter {
                     match result {
                         Ok((key, value)) => {
@@ -40,7 +40,7 @@ impl<'a> Response<'a> {
                         }
                         Err(err) => {
                             writer.write_u8(err.code as u8)?;
-                            Err(err)?
+                            Err(err)?;
                         }
                     }
                 }
@@ -59,7 +59,7 @@ impl<'a> Response<'a> {
                 Delete => Ok(Response::Status(OK)),
                 Set => Ok(Response::Status(OK)),
                 Scan => {
-                    let size = reader.read_u64::<BigEndian>()? as usize;
+                    let size = reader.read_u32::<BigEndian>()? as usize;
                     Ok(Response::MultiKV {
                         status: OK,
                         size,
@@ -79,11 +79,16 @@ impl<'a> Response<'a> {
 struct ReaderIter<'a> {
     size: usize,
     reader: Box<dyn Read + 'a>,
+    err_occurred: bool,
 }
 
 impl<'a> ReaderIter<'a> {
     fn new(size: usize, reader: Box<dyn Read + 'a>) -> Self {
-        Self { size, reader }
+        Self {
+            size,
+            reader,
+            err_occurred: false,
+        }
     }
 }
 
@@ -91,19 +96,24 @@ impl Iterator for ReaderIter<'_> {
     type Item = Result<Entry>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.size == 0 {
+        if self.size == 0 || self.err_occurred {
             return None;
         }
         self.size -= 1;
-        Some(pair_result(
-            self.reader.read_key(),
-            self.reader.read_value(),
-        ))
+        Some(self.read_entry())
     }
 }
 
-fn pair_result(key: io::Result<Vec<u8>>, value: io::Result<Vec<u8>>) -> Result<Entry> {
-    Ok((key?.into(), value?))
+impl ReaderIter<'_> {
+    fn read_entry(&mut self) -> Result<Entry> {
+        match self.reader.read_u8()?.into() {
+            OK => Ok((self.reader.read_key()?.into(), self.reader.read_value()?)),
+            code => {
+                self.err_occurred = true;
+                Err(Error::new(code, "some error"))
+            }
+        }
+    }
 }
 
 #[cfg(test)]
@@ -113,6 +123,7 @@ mod tests {
     use matches::matches;
     use std::io::Cursor;
     use util::status::StatusCode;
+    use util::types::Entry;
 
     macro_rules! transfer_move {
         ($new_resp:ident, $origin_resp:expr, $size:expr, $action:expr) => {
@@ -172,6 +183,32 @@ mod tests {
         if let SingleValue { status, value } = new_resp {
             assert_eq!(StatusCode::OK, status);
             assert_eq!(&b"hexi"[..], value.as_slice());
+        }
+    }
+
+    #[test]
+    fn scan_ok() {
+        let origin_data: Vec<Entry> = vec![
+            (b"name"[..].to_vec().into(), b"Hexi"[..].into()),
+            (b"last_name"[..].to_vec().into(), b"Lee"[..].into()),
+        ];
+
+        transfer_move!(
+            new_resp,
+            MultiKV {
+                status: StatusCode::OK,
+                size: origin_data.len(),
+                iter: Box::new(origin_data.iter().map(|entry| Ok(entry.clone())))
+            },
+            35usize,
+            Scan
+        );
+        assert!(matches!(new_resp, MultiKV{status: _, size: _, iter: _}));
+        if let MultiKV { status, size, iter } = new_resp {
+            assert_eq!(StatusCode::OK, status);
+            assert_eq!(2usize, size);
+            let transferred_data = iter.map(|ret| ret.unwrap()).collect::<Vec<Entry>>();
+            assert_eq!(origin_data, transferred_data);
         }
     }
 }
