@@ -10,3 +10,4 @@ util = { path = "../util", version = "0.1"}
 
 [dev-dependencies]
 matches = "0.1"
+speculate = "0.1"

@@ -117,8 +117,10 @@ impl Request {
 #[cfg(test)]
 mod tests {
     use super::Request;
+    use crate::{MAX_KEY_LEN, MAX_VALUE_LEN};
     use matches::matches;
-    use std::io::{self, Cursor, Read};
+    use speculate::speculate;
+    use std::io::Cursor;
     use util::status::Result;
 
     pub trait RequestTestExt: Sized {
@@ -133,24 +135,37 @@ mod tests {
         }
     }
 
-    #[test]
-    fn change_vec_as_mut_slice() {
-        let mut data = Vec::with_capacity(3);
-        unsafe { data.set_len(3) };
-        io::repeat(1).read_exact(data.as_mut_slice()).unwrap();
-        assert_eq!(3, data.len());
-        assert_eq!(&[1u8, 1, 1], &data[..]);
+    macro_rules! assert_delete {
+        ($data:expr) => {
+            let (new_request, bytes) = Request::Delete($data[..].to_vec().into())
+                .transfer_move()
+                .unwrap();
+            assert_eq!($data[..].len() + 3, bytes);
+            assert!(matches!(&new_request, Request::Delete(ref _key)));
+            if let Request::Delete(ref key) = new_request {
+                assert_eq!(&$data[..], key.as_slice());
+            }
+        };
     }
 
-    #[test]
-    fn request_delete_test() {
-        let (new_request, bytes) = Request::Delete(b"name"[..].to_vec().into())
-            .transfer_move()
-            .unwrap();
-        assert_eq!(7usize, bytes);
-        assert!(matches!(&new_request, Request::Delete(ref _key)));
-        if let Request::Delete(ref key) = new_request {
-            assert_eq!(&b"name"[..], key.as_slice());
+    speculate! {
+        describe "delete" {
+            it "normal" {
+                assert_delete!(b"name");
+            }
+
+            it "zero" {
+                assert_delete!([0; 0]);
+            }
+
+            it "max length" {
+                assert_delete!([0; MAX_KEY_LEN]);
+            }
+
+            #[should_panic]
+            it "overflow" {
+                assert_delete!([0; MAX_KEY_LEN + 1]);
+            }
         }
     }
 
