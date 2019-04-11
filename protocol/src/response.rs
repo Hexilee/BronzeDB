@@ -49,7 +49,7 @@ impl<'a> Response<'a> {
         Ok(counter)
     }
 
-    pub fn read_from(mut reader: impl Read + 'a, request_action: Action) -> Result<Self> {
+    pub fn read_from(reader: &'a mut dyn Read, request_action: Action) -> Result<Self> {
         match reader.read_u8()?.into() {
             OK => match request_action {
                 Get => Ok(Response::SingleValue {
@@ -63,7 +63,7 @@ impl<'a> Response<'a> {
                     Ok(Response::MultiKV {
                         status: OK,
                         size,
-                        iter: Box::new(ReaderIter::new(size, Box::new(reader))),
+                        iter: Box::new(ReaderIter::new(size, reader)),
                     })
                 }
                 Unknown => Err(Error::new(
@@ -78,12 +78,12 @@ impl<'a> Response<'a> {
 
 struct ReaderIter<'a> {
     size: usize,
-    reader: Box<dyn Read + 'a>,
+    reader: &'a mut dyn Read,
     err_occurred: bool,
 }
 
 impl<'a> ReaderIter<'a> {
-    fn new(size: usize, reader: Box<dyn Read + 'a>) -> Self {
+    fn new(size: usize, reader: &'a mut dyn Read) -> Self {
         Self {
             size,
             reader,
