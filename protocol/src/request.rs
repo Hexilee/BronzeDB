@@ -349,20 +349,6 @@ mod tests {
         }
     }
 
-    #[test]
-    fn request_set_test() {
-        let (new_request, bytes) =
-            Request::Set(b"last_name"[..].to_vec().into(), b"Lee"[..].to_vec().into())
-                .transfer_move()
-                .unwrap();
-        assert_eq!(17usize, bytes);
-        assert!(matches!(&new_request, Request::Set(ref _key, ref _value)));
-        if let Request::Set(ref key, ref value) = new_request {
-            assert_eq!(&b"last_name"[..], key.as_slice());
-            assert_eq!(&b"Lee"[..], value.as_slice());
-        }
-    }
-
     macro_rules! assert_set {
         ($key:expr, $value:expr) => {
             let (new_request, bytes) =
