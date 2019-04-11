@@ -3,7 +3,7 @@ use util::types::{Entry, Key, Value};
 
 pub trait Engine {
     fn set(&mut self, key: Key, value: Value) -> Result<()>;
-    fn get(&self, key: Key) -> Result<Value>;
+    fn get(&self, key: Key) -> Result<Value>; // TODO: use Result<Option<Value>>
     fn delete(&mut self, key: Key) -> Result<()>;
     fn scan(
         &self,

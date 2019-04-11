@@ -120,9 +120,12 @@ impl ReaderIter<'_> {
 mod tests {
     use super::Response::{self, *};
     use crate::request::Action::*;
+    use crate::{MAX_KEY_LEN, MAX_VALUE_LEN};
     use matches::matches;
+    use speculate::speculate;
     use std::io::Cursor;
-    use util::status::{Error, Result, StatusCode};
+    use util::status::StatusCode::{self, *};
+    use util::status::{Error, Result};
     use util::types::Entry;
 
     macro_rules! transfer_move {
@@ -143,18 +146,32 @@ mod tests {
         };
     }
 
-    #[test]
-    fn status_not_ok() {
-        let status_set: Vec<StatusCode> = (1u8..5).map(Into::into).collect();
-        for (index, resp) in status_set
-            .iter()
-            .map(|status| Response::Status(*status))
-            .enumerate()
-        {
-            transfer_move!(new_resp, resp, 1usize, Get);
+    macro_rules! assert_status_not_ok {
+        ($status:expr) => {
+            transfer_move!(new_resp, Response::Status($status), 1usize, Get);
             assert!(matches!(new_resp, Status(ref _x)));
-            if let Status(code) = new_resp {
-                assert_eq!(status_set[index], code);
+            if let Status(status) = new_resp {
+                assert_eq!($status, status);
+            }
+        };
+    }
+
+    speculate! {
+        describe "status not ok" {
+            it "io error" {
+                assert_status_not_ok!(IOError);
+            }
+
+            it "unknown action" {
+                assert_status_not_ok!(UnknownAction);
+            }
+
+            it "poison error" {
+                assert_status_not_ok!(PoisonError);
+            }
+
+            it "not found" {
+                assert_status_not_ok!(NotFound);
             }
         }
     }
@@ -177,21 +194,43 @@ mod tests {
         }
     }
 
-    #[test]
-    fn get_ok() {
-        transfer_move!(
-            new_resp,
-            SingleValue {
-                status: StatusCode::OK,
-                value: b"hexi".to_vec(),
-            },
-            7usize,
-            Get
-        );
-        assert!(matches!(new_resp, SingleValue{status: _, value: _}));
-        if let SingleValue { status, value } = new_resp {
-            assert_eq!(StatusCode::OK, status);
-            assert_eq!(&b"hexi"[..], value.as_slice());
+    macro_rules! assert_get_ok {
+        ($value:expr) => {
+            transfer_move!(
+                new_resp,
+                SingleValue {
+                    status: StatusCode::OK,
+                    value: $value.to_vec(),
+                },
+                $value.len() + 3,
+                Get
+            );
+            assert!(matches!(new_resp, SingleValue{status: _, value: _}));
+            if let SingleValue { status, value } = new_resp {
+                assert_eq!(StatusCode::OK, status);
+                assert_eq!(&$value[..], value.as_slice());
+            }
+        };
+    }
+
+    speculate! {
+        describe "get ok" {
+            it "normal" {
+                assert_get_ok!(b"Hexi");
+            }
+
+            it "zero" {
+                assert_get_ok!([0; 0]);
+            }
+
+            it "max length" {
+                assert_get_ok!([0; MAX_VALUE_LEN]);
+            }
+
+            #[should_panic]
+            it "overflow" {
+                assert_get_ok!([0; MAX_VALUE_LEN + 1]);
+            }
         }
     }
 
