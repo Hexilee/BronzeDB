@@ -122,13 +122,22 @@ mod tests {
     use crate::request::Action::*;
     use matches::matches;
     use std::io::Cursor;
-    use util::status::StatusCode;
+    use util::status::{Error, Result, StatusCode};
     use util::types::Entry;
 
     macro_rules! transfer_move {
         ($new_resp:ident, $origin_resp:expr, $size:expr, $action:expr) => {
             let mut buffer = Vec::new();
             assert_eq!($size, $origin_resp.write_to(&mut buffer).unwrap());
+            let mut reader = Cursor::new(buffer);
+            let $new_resp = Response::read_from(&mut reader, $action).unwrap();
+        };
+    }
+
+    macro_rules! transfer_err {
+        ($new_resp:ident, $origin_resp:expr, $action:expr) => {
+            let mut buffer = Vec::new();
+            assert!(matches!($origin_resp.write_to(&mut buffer), Err(_err)));
             let mut reader = Cursor::new(buffer);
             let $new_resp = Response::read_from(&mut reader, $action).unwrap();
         };
@@ -209,6 +218,41 @@ mod tests {
             assert_eq!(2usize, size);
             let transferred_data = iter.map(|ret| ret.unwrap()).collect::<Vec<Entry>>();
             assert_eq!(origin_data, transferred_data);
+        }
+    }
+
+    #[test]
+    fn scan_err() {
+        let origin_data: Vec<Result<Entry>> = vec![
+            Ok((b"name"[..].to_vec().into(), b"Hexi"[..].into())),
+            Err(Error::new(StatusCode::IOError, "Some IO Error")),
+            Ok((b"last_name"[..].to_vec().into(), b"Lee"[..].into())),
+        ];
+
+        transfer_err!(
+            new_resp,
+            MultiKV {
+                status: StatusCode::OK,
+                size: origin_data.len(),
+                iter: Box::new(origin_data.clone().into_iter())
+            },
+            Scan
+        );
+        assert!(matches!(new_resp, MultiKV{status: _, size: _, iter: _}));
+        if let MultiKV {
+            status,
+            size,
+            mut iter,
+        } = new_resp
+        {
+            assert_eq!(StatusCode::OK, status);
+            assert_eq!(3usize, size);
+            assert_eq!(
+                origin_data[0].as_ref().unwrap(),
+                &iter.next().unwrap().unwrap()
+            );
+            assert!(matches!(iter.next().unwrap(), Err(_ref)));
+            assert!(matches!(iter.next(), None));
         }
     }
 }
