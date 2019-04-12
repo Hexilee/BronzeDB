@@ -238,7 +238,11 @@ mod tests {
     fn scan_ok() {
         let origin_data: Vec<Entry> = vec![
             (b"name"[..].to_vec().into(), b"Hexi"[..].into()),
-            (b"last_name"[..].to_vec().into(), b"Lee"[..].into()),
+            (b""[..].to_vec().into(), b""[..].into()),
+            (
+                [0; MAX_KEY_LEN][..].to_vec().into(),
+                [0; MAX_VALUE_LEN][..].into(),
+            ),
         ];
 
         transfer_move!(
@@ -248,13 +252,16 @@ mod tests {
                 size: origin_data.len(),
                 iter: Box::new(origin_data.iter().map(|entry| Ok(entry.clone())))
             },
-            35usize,
+            5 + origin_data.len() * 5
+                + origin_data
+                    .iter()
+                    .fold(0, |size, (key, value)| size + key.len() + value.len()),
             Scan
         );
         assert!(matches!(new_resp, MultiKV{status: _, size: _, iter: _}));
         if let MultiKV { status, size, iter } = new_resp {
             assert_eq!(StatusCode::OK, status);
-            assert_eq!(2usize, size);
+            assert_eq!(origin_data.len(), size);
             let transferred_data = iter.map(|ret| ret.unwrap()).collect::<Vec<Entry>>();
             assert_eq!(origin_data, transferred_data);
         }

@@ -49,8 +49,8 @@ impl PartialEq for RawKey {
         self.len() == other.len()
             && unsafe {
                 0 == memcmp(
-                    &self.data[0] as *const u8 as *const c_void,
-                    &other.data[0] as *const u8 as *const c_void,
+                    &self.data as *const [u8] as *const c_void,
+                    &other.data as *const [u8] as *const c_void,
                     self.len(),
                 )
             }
@@ -61,8 +61,8 @@ impl PartialOrd for RawKey {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         match unsafe {
             memcmp(
-                &self.data[0] as *const u8 as *const c_void,
-                &other.data[0] as *const u8 as *const c_void,
+                &self.data as *const [u8] as *const c_void,
+                &other.data as *const [u8] as *const c_void,
                 self.len(),
             )
         } {
