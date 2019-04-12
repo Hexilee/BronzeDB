@@ -3,5 +3,7 @@ members = [
     "engine",
     "simple-kv-server",
     "protocol",
-    "util"
+    "util",
+    "client",
+    "tests"
 ]

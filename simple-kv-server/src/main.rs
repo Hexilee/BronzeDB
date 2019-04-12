@@ -1,10 +1,10 @@
 use crate::engine_impl::EngineImpl;
-use engine::{Engine};
+use engine::Engine;
 use protocol::request::Request::{self, *};
 use protocol::response::Response;
 use std::net::{TcpListener, TcpStream};
 use std::thread::spawn;
-use util::status::StatusCode::{*};
+use util::status::StatusCode::*;
 use util::status::{Error, Result};
 
 fn handle_client<T: Engine>(mut stream: TcpStream, mut engine: T) -> Result<()> {
