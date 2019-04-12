@@ -1,12 +1,11 @@
 use crate::engine_impl::EngineImpl;
-use engine::{Engine, Scanner};
+use engine::{Engine};
 use protocol::request::Request::{self, *};
 use protocol::response::Response;
 use std::net::{TcpListener, TcpStream};
 use std::thread::spawn;
-use util::status::StatusCode::{self, *};
+use util::status::StatusCode::{*};
 use util::status::{Error, Result};
-use util::types::{Entry, Key, Value};
 
 fn handle_client<T: Engine>(mut stream: TcpStream, mut engine: T) -> Result<()> {
     loop {
@@ -28,7 +27,7 @@ fn handle_client<T: Engine>(mut stream: TcpStream, mut engine: T) -> Result<()> 
                 }
             },
             Delete(key) => match engine.delete(key.into()) {
-                Ok(value) => {
+                Ok(_) => {
                     Response::Status(OK).write_to(&mut stream)?;
                 }
                 Err(err) => {
