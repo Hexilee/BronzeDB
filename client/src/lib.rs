@@ -80,8 +80,9 @@ impl<T: Read + Write> Connection<T> {
         }
     }
 
-    pub fn is_broken(&self) -> bool {
-        self.inner
+    pub fn no_response(&mut self) -> Result<()> {
+        Request::NoResponse.write_to(&mut self.inner)?;
+        Ok(())
     }
 }
 
