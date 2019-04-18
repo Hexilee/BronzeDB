@@ -56,8 +56,7 @@ impl<'a> Response<'a> {
                     status: OK,
                     value: reader.read_value()?,
                 }),
-                Delete => Ok(Response::Status(OK)),
-                Set => Ok(Response::Status(OK)),
+                Delete | Set | Ping => Ok(Response::Status(OK)),
                 Scan => {
                     let size = reader.read_u32::<BigEndian>()? as usize;
                     Ok(Response::MultiKV {

@@ -12,6 +12,7 @@ pub enum Action {
     Get = 1,
     Delete = 2,
     Scan = 3,
+    Ping = 4,
     Unknown = MAX as isize,
 }
 
@@ -22,6 +23,7 @@ impl From<u8> for Action {
             1 => Action::Get,
             2 => Action::Delete,
             3 => Action::Scan,
+            4 => Action::Ping,
             _ => Action::Unknown,
         }
     }
@@ -35,6 +37,7 @@ pub enum Request {
         lower_bound: Option<Key>,
         upper_bound: Option<Key>,
     },
+    Ping,
     Unknown,
 }
 
@@ -75,6 +78,7 @@ impl Request {
                 counter += writer.write_key(&upper_key)?;
             }
 
+            Request::Ping => writer.write_u8(Action::Ping as u8)?,
             Request::Unknown => panic!("cannot send Request::Unknown"),
         }
         Ok(counter)
@@ -108,6 +112,7 @@ impl Request {
                     },
                 })
             }
+            Action::Ping => Ok(Request::Ping),
             Action::Unknown => Ok(Request::Unknown),
         }
     }
@@ -199,6 +204,20 @@ mod tests {
             it "overflow" {
                 assert_get!([0; MAX_KEY_LEN + 1]);
             }
+        }
+    }
+
+    macro_rules! assert_ping {
+        () => {
+            let (new_request, bytes) = Request::Ping.transfer_move().unwrap();
+            assert_eq!(1, bytes);
+            assert!(matches!(new_request, Request::Ping));
+        };
+    }
+
+    speculate! {
+        it "just ping" {
+            assert_ping!();
         }
     }
 
