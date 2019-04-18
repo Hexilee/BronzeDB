@@ -32,6 +32,12 @@ impl Deref for Key {
     }
 }
 
+impl AsRef<[u8]> for Key {
+    fn as_ref(&self) -> &[u8] {
+        self.as_slice()
+    }
+}
+
 impl From<&[u8]> for &RawKey {
     fn from(data: &[u8]) -> Self {
         unsafe { transmute(data) }
