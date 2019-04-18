@@ -1,11 +1,12 @@
 [package]
-name = "memory-db-server"
+name = "sled-db-server"
 version = "0.1.0"
 authors = ["Hexilee <hexileee@gmail.com>"]
 edition = "2018"
 
 [dependencies]
+sled = "0.22"
+env_logger = "0.6"
 engine = { path = "../engine", version = "0.1"}
 server = { path = "../server", version = "0.1"}
 util = { path = "../util", version = "0.1"}
-env_logger = "0.6"
