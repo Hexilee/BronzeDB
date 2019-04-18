@@ -1,4 +1,4 @@
-use client::Client;
+use client::Connection;
 use std::io::{self, Write};
 use std::net::TcpStream;
 use util::status::{Error, Result, StatusCode};
@@ -9,7 +9,7 @@ fn main() -> Result<()> {
     io::stdout().flush()?;
     io::stdin().read_line(&mut addr)?;
     let stream = TcpStream::connect(addr.trim_end())?;
-    let mut client = Client::new(stream);
+    let mut client = Connection::new(stream);
     loop {
         let mut buf = String::new();
         io::stdin().read_line(&mut buf)?;

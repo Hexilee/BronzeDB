@@ -3,7 +3,7 @@
 #[macro_use]
 extern crate serde_derive;
 
-use client::Client;
+use client::Connection;
 use std::net::TcpStream;
 use std::time::Instant;
 use util::status::Result;
@@ -21,9 +21,9 @@ impl Config {
     }
 }
 
-fn get_client() -> Result<Client<TcpStream>> {
+fn get_client() -> Result<Connection<TcpStream>> {
     let conn = TcpStream::connect(&Config::new().db_addr)?;
-    Ok(Client::new(conn))
+    Ok(Connection::new(conn))
 }
 
 //#[test]

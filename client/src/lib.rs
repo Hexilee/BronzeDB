@@ -6,11 +6,11 @@ use util::status::StatusCode::*;
 use util::status::{Error, Result};
 use util::types::{Entry, Key, Value};
 
-pub struct Client<T: Read + Write> {
+pub struct Connection<T: Read + Write> {
     connection: T,
 }
 
-impl<T: Read + Write> Client<T> {
+impl<T: Read + Write> Connection<T> {
     pub fn new(connection: T) -> Self {
         Self { connection }
     }
