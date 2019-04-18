@@ -7,17 +7,17 @@ use util::status::{Error, Result};
 use util::types::{Entry, Key, Value};
 
 pub struct Connection<T: Read + Write> {
-    connection: T,
+    inner: T,
 }
 
 impl<T: Read + Write> Connection<T> {
     pub fn new(connection: T) -> Self {
-        Self { connection }
+        Self { inner: connection }
     }
 
     pub fn set(&mut self, key: Key, value: Value) -> Result<()> {
-        Request::Set(key, value).write_to(&mut self.connection)?;
-        match Response::read_from(&mut self.connection, Set)? {
+        Request::Set(key, value).write_to(&mut self.inner)?;
+        match Response::read_from(&mut self.inner, Set)? {
             Status(status) => match status {
                 OK => Ok(()),
                 code => Err(Error::new(code, "set request error")),
@@ -27,8 +27,8 @@ impl<T: Read + Write> Connection<T> {
     }
 
     pub fn delete(&mut self, key: Key) -> Result<()> {
-        Request::Delete(key).write_to(&mut self.connection)?;
-        match Response::read_from(&mut self.connection, Delete)? {
+        Request::Delete(key).write_to(&mut self.inner)?;
+        match Response::read_from(&mut self.inner, Delete)? {
             Status(status) => match status {
                 OK => Ok(()),
                 code => Err(Error::new(code, "delete request error")),
@@ -38,8 +38,8 @@ impl<T: Read + Write> Connection<T> {
     }
 
     pub fn get(&mut self, key: Key) -> Result<Option<Value>> {
-        Request::Get(key).write_to(&mut self.connection)?;
-        match Response::read_from(&mut self.connection, Get)? {
+        Request::Get(key).write_to(&mut self.inner)?;
+        match Response::read_from(&mut self.inner, Get)? {
             Status(status) => match status {
                 NotFound => Ok(None),
                 code => Err(Error::new(code, "get request error")),
@@ -58,8 +58,8 @@ impl<T: Read + Write> Connection<T> {
             lower_bound,
             upper_bound,
         }
-        .write_to(&mut self.connection)?;
-        match Response::read_from(&mut self.connection, Scan)? {
+        .write_to(&mut self.inner)?;
+        match Response::read_from(&mut self.inner, Scan)? {
             Status(status) => Err(Error::new(status, "scan request error")),
 
             MultiKV {
