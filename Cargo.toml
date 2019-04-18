@@ -1,7 +1,7 @@
 [workspace]
 members = [
     "engine",
-    "simple-kv-server",
+    "memory-db-server",
     "protocol",
     "util",
     "client",
