@@ -8,28 +8,32 @@ use util::types::{Key, Value};
 
 #[derive(Debug, Copy, Clone)]
 pub enum Action {
-    Set = 0,
-    Get = 1,
-    Delete = 2,
-    Scan = 3,
-    Ping = 4,
+    NoResponse = 0,
+    Ping = 1,
+    Set = 2,
+    Get = 3,
+    Delete = 4,
+    Scan = 5,
     Unknown = MAX as isize,
 }
 
 impl From<u8> for Action {
     fn from(value: u8) -> Self {
         match value {
-            0 => Action::Set,
-            1 => Action::Get,
-            2 => Action::Delete,
-            3 => Action::Scan,
-            4 => Action::Ping,
+            0 => Action::NoResponse,
+            1 => Action::Ping,
+            2 => Action::Set,
+            3 => Action::Get,
+            4 => Action::Delete,
+            5 => Action::Scan,
             _ => Action::Unknown,
         }
     }
 }
 
 pub enum Request {
+    NoResponse,
+    Ping,
     Set(Key, Value),
     Get(Key),
     Delete(Key),
@@ -37,7 +41,6 @@ pub enum Request {
         lower_bound: Option<Key>,
         upper_bound: Option<Key>,
     },
-    Ping,
     Unknown,
 }
 
@@ -79,6 +82,7 @@ impl Request {
             }
 
             Request::Ping => writer.write_u8(Action::Ping as u8)?,
+            Request::NoResponse => writer.write_u8(Action::NoResponse as u8)?,
             Request::Unknown => panic!("cannot send Request::Unknown"),
         }
         Ok(counter)
@@ -94,7 +98,6 @@ impl Request {
                 reader.read_value()?,
             )),
             Action::Get => Ok(Request::Get(reader.read_key()?.into())),
-
             Action::Delete => Ok(Request::Delete(reader.read_key()?.into())),
             Action::Scan => {
                 let lower_bound = reader.read_key()?;
@@ -113,6 +116,7 @@ impl Request {
                 })
             }
             Action::Ping => Ok(Request::Ping),
+            Action::NoResponse => Ok(Request::NoResponse),
             Action::Unknown => Ok(Request::Unknown),
         }
     }
@@ -204,6 +208,20 @@ mod tests {
             it "overflow" {
                 assert_get!([0; MAX_KEY_LEN + 1]);
             }
+        }
+    }
+
+    macro_rules! assert_no_response {
+        () => {
+            let (new_request, bytes) = Request::NoResponse.transfer_move().unwrap();
+            assert_eq!(1, bytes);
+            assert!(matches!(new_request, Request::NoResponse));
+        };
+    }
+
+    speculate! {
+        it "just no response" {
+            assert_no_response!();
         }
     }
 

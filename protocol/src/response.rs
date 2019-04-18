@@ -69,6 +69,7 @@ impl<'a> Response<'a> {
                     UnknownAction,
                     format!("unknown action: {:?}", request_action),
                 )),
+                NoResponse => unreachable!(),
             },
             code => Ok(Response::Status(code)),
         }

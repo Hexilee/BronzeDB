@@ -1,4 +1,4 @@
-use protocol::request::Action::{Delete, Get, Scan, Set};
+use protocol::request::Action::{Delete, Get, Ping, Scan, Set};
 use protocol::request::Request;
 use protocol::response::Response::{self, *};
 use std::io::{Read, Write};
@@ -70,4 +70,19 @@ impl<T: Read + Write> Connection<T> {
             _ => unreachable!(),
         }
     }
+
+    pub fn ping(&mut self) -> Result<()> {
+        Request::Ping.write_to(&mut self.inner)?;
+        match Response::read_from(&mut self.inner, Ping)? {
+            Status(OK) => Ok(()),
+            Status(status) => Err(Error::new(status, "ping error")),
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn is_broken(&self) -> bool {
+        self.inner
+    }
 }
+
+pub mod manager;
