@@ -18,20 +18,21 @@ impl EngineImpl {
 }
 
 impl Engine for EngineImpl {
-    fn set(&mut self, key: Key, value: Vec<u8>) -> Result<()> {
-        self.inner.set(key, value)?;
-        Ok(())
-    }
+    type Error = ();
 
-    fn get(&self, key: Key) -> Result<Vec<u8>> {
-        Ok(self.inner.get(key)?.to_owned())
-    }
-
-    fn delete(&mut self, key: Key) -> Result<()> {
+    fn set(&mut self, key: Key, value: Vec<u8>) -> Result<(), Self::Error> {
         unimplemented!()
     }
 
-    fn scan(&self, lower_bound: Option<Key>, upper_bound: Option<Key>) -> Result<Box<dyn Scanner>> {
+    fn get(&self, key: Key) -> Result<Option<Vec<u8>>, Self::Error> {
+        unimplemented!()
+    }
+
+    fn delete(&mut self, key: Key) -> Result<(), Self::Error> {
+        unimplemented!()
+    }
+
+    fn scan(&self, lower_bound: Option<Key>, upper_bound: Option<Key>) -> Result<Box<Scanner>, Self::Error> {
         unimplemented!()
     }
 }
