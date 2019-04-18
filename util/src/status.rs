@@ -28,7 +28,14 @@ impl From<u8> for StatusCode {
 
 impl ToString for StatusCode {
     fn to_string(&self) -> String {
-        unimplemented!()
+        match self {
+            StatusCode::OK => "OK".into(),
+            StatusCode::IOError => "IOError".into(),
+            StatusCode::UnknownAction => "UnknownAction".into(),
+            StatusCode::PoisonError => "PoisonError".into(),
+            StatusCode::NotFound => "NotFound".into(),
+            StatusCode::UnknownStatusCode => "UnknownStatusCode".into(),
+        }
     }
 }
 

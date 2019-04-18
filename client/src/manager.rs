@@ -1,4 +1,3 @@
-pub extern crate r2d2;
 use super::Connection;
 use std::net::TcpStream;
 use util::status::Error;
@@ -31,7 +30,7 @@ impl r2d2::ManageConnection for BronzeConnManager {
     fn has_broken(&self, conn: &mut Self::Connection) -> bool {
         match conn.no_response() {
             Ok(()) => false,
-            Err(()) => true,
+            Err(_) => true,
         }
     }
 }
