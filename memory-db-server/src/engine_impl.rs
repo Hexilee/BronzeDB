@@ -1,5 +1,7 @@
 use engine::{Engine, Scanner};
 use std::collections::HashMap;
+use std::fmt::{Display, Formatter};
+use std::sync::PoisonError;
 use std::sync::{Arc, RwLock, RwLockReadGuard};
 use util::status::{Error, Result, StatusCode};
 use util::types::{Entry, EntryRef, Key, Value};
@@ -17,29 +19,45 @@ impl EngineImpl {
     }
 }
 
+#[derive(Debug)]
+pub enum EngineError {
+    PoisonError(Box<dyn std::error::Error>),
+}
+
+impl<T> From<PoisonError<T>> for EngineError {
+    fn from(poison_err: PoisonError<T>) -> Self {
+        EngineError::PoisonError(Box::new(poison_err))
+    }
+}
+
+impl From<EngineError> for Error {
+    fn from(err: EngineError) -> Self {
+        Error::new(StatusCode::EngineError, format!("engine error: {}", err))
+    }
+}
+
+impl Display for EngineError {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+        match self {
+            EngineError::PoisonError(ref err) => f.write_str(&format!("PoisonError: {}", err)),
+        }
+    }
+}
+
+impl std::error::Error for EngineError {}
+
 impl Engine for EngineImpl {
     fn set(&mut self, key: Key, value: Vec<u8>) -> Result<()> {
         self.inner.write()?.insert(key, value);
         Ok(())
     }
 
-    fn get(&self, key: Key) -> Result<Value> {
-        Ok(self
-            .inner
-            .read()?
-            .get(&key)
-            .ok_or(Error::new(
-                StatusCode::NotFound,
-                format!("key {:?} not found", &key),
-            ))?
-            .clone())
+    fn get(&self, key: Key) -> Result<Option<Value>> {
+        Ok(self.inner.read()?.get(&key).map(|value| value.clone()))
     }
 
     fn delete(&mut self, key: Key) -> Result<()> {
-        self.inner.write()?.remove(&key).ok_or(Error::new(
-            StatusCode::NotFound,
-            format!("key {:?} not found", &key),
-        ))?;
+        self.inner.write()?.remove(&key);
         Ok(())
     }
 

@@ -32,50 +32,53 @@ impl<T: Engine + Clone + Sync + Send + 'static> Server<T> {
     }
 }
 
+fn deal_engine_err<T>(stream_ref: &mut TcpStream, result: Result<T>) -> Result<T> {
+    match result {
+        Ok(value) => Ok(value),
+        Err(err) => {
+            Response::Status(EngineError).write_to(stream_ref)?;
+            Err(err)
+        }
+    }
+}
+
 fn handle_client<T: Engine>(mut stream: TcpStream, mut engine: T) -> Result<()> {
     loop {
         match Request::read_from(&mut stream) {
             Ok(request) => match request {
-                Get(key) => match engine.get(key.into()) {
-                    Ok(value) => {
-                        Response::SingleValue { status: OK, value }.write_to(&mut stream)?;
-                    }
-                    Err(err) => {
-                        Response::Status(err.code).write_to(&mut stream)?;
-                    }
-                },
-                Set(key, value) => match engine.set(key.into(), value) {
-                    Ok(_) => {
-                        Response::Status(OK).write_to(&mut stream)?;
-                    }
-                    Err(err) => {
-                        Response::Status(err.code).write_to(&mut stream)?;
-                    }
-                },
-                Delete(key) => match engine.delete(key.into()) {
-                    Ok(_) => {
-                        Response::Status(OK).write_to(&mut stream)?;
-                    }
-                    Err(err) => {
-                        Response::Status(err.code).write_to(&mut stream)?;
-                    }
-                },
+                Get(key) => {
+                    let value = deal_engine_err(&mut stream, engine.get(key.into()))?;
+                    match value {
+                        Some(data) => Response::SingleValue {
+                            status: OK,
+                            value: data,
+                        }
+                        .write_to(&mut stream)?,
+                        None => Response::Status(NotFound).write_to(&mut stream)?,
+                    };
+                }
+                Set(key, value) => {
+                    deal_engine_err(&mut stream, engine.set(key.into(), value))?;
+                    Response::Status(OK).write_to(&mut stream)?;
+                }
+
+                Delete(key) => {
+                    deal_engine_err(&mut stream, engine.delete(key.into()))?;
+                    Response::Status(OK).write_to(&mut stream)?;
+                }
                 Scan {
                     lower_bound,
                     upper_bound,
-                } => match engine.scan(lower_bound, upper_bound) {
-                    Ok(scanner) => {
-                        Response::MultiKV {
-                            status: OK,
-                            size: scanner.size(),
-                            iter: scanner.iter(),
-                        }
-                        .write_to(&mut stream)?;
+                } => {
+                    let scanner =
+                        deal_engine_err(&mut stream, engine.scan(lower_bound, upper_bound))?;
+                    Response::MultiKV {
+                        status: OK,
+                        size: scanner.size(),
+                        iter: scanner.iter(),
                     }
-                    Err(err) => {
-                        Response::Status(err.code).write_to(&mut stream)?;
-                    }
-                },
+                    .write_to(&mut stream)?;
+                }
 
                 Ping => {
                     Response::Status(OK).write_to(&mut stream)?;

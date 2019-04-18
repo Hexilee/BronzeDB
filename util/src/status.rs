@@ -1,6 +1,5 @@
 use std::fmt::{Display, Formatter};
 use std::io;
-use std::sync::PoisonError;
 use std::u8::MAX;
 
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq)]
@@ -8,7 +7,7 @@ pub enum StatusCode {
     OK = 0,
     IOError = 1,
     UnknownAction = 2,
-    PoisonError = 3,
+    EngineError = 3,
     NotFound = 4,
     UnknownStatusCode = MAX as isize,
 }
@@ -19,7 +18,7 @@ impl From<u8> for StatusCode {
             0 => StatusCode::OK,
             1 => StatusCode::IOError,
             2 => StatusCode::UnknownAction,
-            3 => StatusCode::PoisonError,
+            3 => StatusCode::EngineError,
             4 => StatusCode::NotFound,
             _ => StatusCode::UnknownStatusCode,
         }
@@ -32,7 +31,7 @@ impl ToString for StatusCode {
             StatusCode::OK => "OK".into(),
             StatusCode::IOError => "IOError".into(),
             StatusCode::UnknownAction => "UnknownAction".into(),
-            StatusCode::PoisonError => "PoisonError".into(),
+            StatusCode::EngineError => "EngineError".into(),
             StatusCode::NotFound => "NotFound".into(),
             StatusCode::UnknownStatusCode => "UnknownStatusCode".into(),
         }
@@ -66,15 +65,6 @@ impl From<io::Error> for Error {
     fn from(err: io::Error) -> Self {
         Self {
             code: StatusCode::IOError,
-            message: err.to_string(),
-        }
-    }
-}
-
-impl<T> From<PoisonError<T>> for Error {
-    fn from(err: PoisonError<T>) -> Self {
-        Self {
-            code: StatusCode::PoisonError,
             message: err.to_string(),
         }
     }
