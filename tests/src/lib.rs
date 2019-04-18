@@ -69,29 +69,29 @@ fn one_connect() {
     }
 }
 
-#[test]
-fn multi_connect() {
-    const THREADS: u64 = 1000;
-    const SIZE: u64 = 100;
-    {
-        let now = Instant::now();
-        let mut handlers = Vec::with_capacity(THREADS as usize);
-        for id in 0..THREADS {
-            handlers.push(std::thread::spawn(move || {
-                let mut client = get_client();
-                for i in id * SIZE..(id + 1) * SIZE {
-                    let value = i.to_string().into_bytes();
-                    let key = value.clone().into();
-                    client.set(key, value).unwrap();
-                }
-            }));
-        }
-        for handler in handlers {
-            handler.join().unwrap();
-        }
-        println!(
-            "multi connect set: {}/s",
-            THREADS * SIZE / now.elapsed().as_secs()
-        );
-    }
-}
+//#[test]
+//fn multi_connect() {
+//    const THREADS: u64 = 1000;
+//    const SIZE: u64 = 100;
+//    {
+//        let now = Instant::now();
+//        let mut handlers = Vec::with_capacity(THREADS as usize);
+//        for id in 0..THREADS {
+//            handlers.push(std::thread::spawn(move || {
+//                let mut client = get_client();
+//                for i in id * SIZE..(id + 1) * SIZE {
+//                    let value = i.to_string().into_bytes();
+//                    let key = value.clone().into();
+//                    client.set(key, value).unwrap();
+//                }
+//            }));
+//        }
+//        for handler in handlers {
+//            handler.join().unwrap();
+//        }
+//        println!(
+//            "multi connect set: {}/s",
+//            THREADS * SIZE / now.elapsed().as_secs()
+//        );
+//    }
+//}

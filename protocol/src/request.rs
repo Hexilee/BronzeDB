@@ -4,7 +4,6 @@ use byteorder::{ReadBytesExt, WriteBytesExt};
 use std::io::{self, Read, Write};
 use std::ops::Deref;
 use std::u8::MAX;
-use util::status::Result;
 use util::types::{Key, Value};
 
 #[derive(Debug, Copy, Clone)]
@@ -83,7 +82,7 @@ impl Request {
 }
 
 impl Request {
-    pub fn read_from(mut reader: impl Read) -> Result<Self> {
+    pub fn read_from(mut reader: impl Read) -> io::Result<Self> {
         let action = reader.read_u8()?.into();
         match action {
             Action::Set => Ok(Request::Set(

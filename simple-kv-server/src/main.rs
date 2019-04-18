@@ -50,7 +50,10 @@ fn handle_client<T: Engine>(mut stream: TcpStream, mut engine: T) -> Result<()> 
                     Response::Status(err.code).write_to(&mut stream)?;
                 }
             },
-            Unknown => break Err(Error::new(UnknownAction, "unknown action")),
+            Unknown => {
+                Response::Status(UnknownAction).write_to(&mut stream)?;
+                break Err(Error::new(UnknownAction, "unknown action"))
+            },
         }
     }
 }
@@ -60,7 +63,9 @@ fn main() -> Result<()> {
     let shared_engine = EngineImpl::new();
     for stream in listener.incoming() {
         let engine = shared_engine.clone();
-        spawn(move || handle_client(stream?, engine));
+        let stream = stream?;
+        spawn(move || match handle_client(stream, engine) {
+        });
     }
     Ok(())
 }
