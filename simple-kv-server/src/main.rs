@@ -53,7 +53,10 @@ fn handle_client<T: Engine>(mut stream: TcpStream, mut engine: T) -> Result<()> 
                     }
                 },
 
-                Ping => Response::Status(OK).write_to(&mut stream)?,
+                Ping => {
+                    Response::Status(OK).write_to(&mut stream)?;
+                }
+                NoResponse => continue,
                 Unknown => {
                     Response::Status(UnknownAction).write_to(&mut stream)?;
                     break Err(Error::new(UnknownAction, "unknown action"));
