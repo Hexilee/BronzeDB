@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
 use std::sync::PoisonError;
 use std::sync::{Arc, RwLock, RwLockReadGuard};
-use util::status::{Error, Result, StatusCode};
+use util::status::{Error, StatusCode};
 use util::types::{Entry, EntryRef, Key, Value};
 
 #[derive(Clone)]
@@ -21,12 +21,12 @@ impl EngineImpl {
 
 #[derive(Debug)]
 pub enum EngineError {
-    PoisonError(Box<dyn std::error::Error>),
+    PoisonError(String),
 }
 
 impl<T> From<PoisonError<T>> for EngineError {
     fn from(poison_err: PoisonError<T>) -> Self {
-        EngineError::PoisonError(Box::new(poison_err))
+        EngineError::PoisonError(poison_err.to_string())
     }
 }
 
@@ -47,16 +47,17 @@ impl Display for EngineError {
 impl std::error::Error for EngineError {}
 
 impl Engine for EngineImpl {
-    fn set(&mut self, key: Key, value: Vec<u8>) -> Result<()> {
+    type Error = EngineError;
+    fn set(&mut self, key: Key, value: Vec<u8>) -> Result<(), Self::Error> {
         self.inner.write()?.insert(key, value);
         Ok(())
     }
 
-    fn get(&self, key: Key) -> Result<Option<Value>> {
+    fn get(&self, key: Key) -> Result<Option<Value>, Self::Error> {
         Ok(self.inner.read()?.get(&key).map(|value| value.clone()))
     }
 
-    fn delete(&mut self, key: Key) -> Result<()> {
+    fn delete(&mut self, key: Key) -> Result<(), Self::Error> {
         self.inner.write()?.remove(&key);
         Ok(())
     }
@@ -65,7 +66,7 @@ impl Engine for EngineImpl {
         &self,
         lower_bound: Option<Key>,
         upper_bound: Option<Key>,
-    ) -> Result<Box<dyn Scanner + '_>> {
+    ) -> Result<Box<dyn Scanner + '_>, Self::Error> {
         let guard: RwLockReadGuard<'_, HashMap<Key, Value>> = self.inner.read()?;
         let mut scan = GuardScanner {
             guard,
@@ -91,7 +92,7 @@ struct GuardScanner<'a> {
 }
 
 impl GuardScanner<'_> {
-    fn entries(&self) -> Box<dyn Iterator<Item = Result<Entry>> + '_> {
+    fn entries(&self) -> Box<dyn Iterator<Item = Result<Entry, Error>> + '_> {
         let mut entries: Box<dyn Iterator<Item = EntryRef>> = Box::new(self.guard.iter());
         if let Some(lower_key) = self.lower_bound.as_ref() {
             entries = Box::new(entries.filter(move |(key, _)| *key >= lower_key))
@@ -108,7 +109,7 @@ impl Scanner for GuardScanner<'_> {
         self.size
     }
 
-    fn iter(&self) -> Box<dyn Iterator<Item = Result<Entry>> + '_> {
+    fn iter(&self) -> Box<dyn Iterator<Item = Result<Entry, Error>> + '_> {
         self.entries()
     }
 }

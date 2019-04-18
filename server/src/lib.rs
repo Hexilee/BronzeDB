@@ -32,12 +32,15 @@ impl<T: Engine + Clone + Sync + Send + 'static> Server<T> {
     }
 }
 
-fn deal_engine_err<T>(stream_ref: &mut TcpStream, result: Result<T>) -> Result<T> {
+fn deal_engine_err<T, E: Into<Error>>(
+    stream_ref: &mut TcpStream,
+    result: std::result::Result<T, E>,
+) -> Result<T> {
     match result {
         Ok(value) => Ok(value),
         Err(err) => {
             Response::Status(EngineError).write_to(stream_ref)?;
-            Err(err)
+            Err(err.into())
         }
     }
 }
