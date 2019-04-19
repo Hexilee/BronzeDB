@@ -107,3 +107,9 @@ impl Iterator for SledScanner<'_> {
         self.iter.next()
     }
 }
+
+impl Drop for EngineImpl {
+    fn drop(&mut self) {
+        self.inner.flush().expect("db flush error");
+    }
+}
