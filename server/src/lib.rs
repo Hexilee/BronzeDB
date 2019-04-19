@@ -52,11 +52,7 @@ fn handle_client<T: Engine>(mut stream: TcpStream, mut engine: T) -> Result<()> 
                 Get(key) => {
                     let value = deal_engine_err(&mut stream, engine.get(key.into()))?;
                     match value {
-                        Some(data) => Response::SingleValue {
-                            status: OK,
-                            value: data,
-                        }
-                        .write_to(&mut stream)?,
+                        Some(data) => Response::SingleValue(data).write_to(&mut stream)?,
                         None => Response::Status(NotFound).write_to(&mut stream)?,
                     };
                 }
@@ -75,12 +71,7 @@ fn handle_client<T: Engine>(mut stream: TcpStream, mut engine: T) -> Result<()> 
                 } => {
                     let scanner =
                         deal_engine_err(&mut stream, engine.scan(lower_bound, upper_bound))?;
-                    Response::Scanner {
-                        status: OK,
-                        size: scanner.size(),
-                        iter: scanner.iter(),
-                    }
-                    .write_to(&mut stream)?;
+                    Response::Scanner(scanner).write_to(&mut stream)?;
                 }
 
                 Ping => {
