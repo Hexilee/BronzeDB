@@ -10,6 +10,9 @@ pub trait Engine {
         &self,
         lower_bound: Option<Key>,
         upper_bound: Option<Key>,
-    ) -> Result<Box<dyn Iterator<Item = Result<Entry, Error>> + '_>, Self::Error>;
+    ) -> Result<Box<dyn Scanner + '_>, Self::Error>;
 }
 
+pub trait Scanner {
+    fn iter(&self) -> Box<dyn Iterator<Item = Result<Entry, Error>> + '_>;
+}

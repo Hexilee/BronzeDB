@@ -67,32 +67,36 @@ impl Engine for EngineImpl {
         lower_bound: Option<Key>,
         upper_bound: Option<Key>,
     ) -> Result<Box<dyn Scanner + '_>, Self::Error> {
-        let guard: RwLockReadGuard<'_, HashMap<Key, Value>> = self.inner.read()?;
-        let mut scan = GuardScanner {
-            guard,
+        Ok(Box::new(GuardScanner::new(
+            self.inner.read()?,
             lower_bound,
             upper_bound,
-            size: 0,
-        };
-
-        let mut counter = 0;
-        for _ in scan.entries() {
-            counter += 1;
-        }
-        scan.size = counter;
-        Ok(Box::new(scan))
+        )))
     }
 }
 
 struct GuardScanner<'a> {
     guard: RwLockReadGuard<'a, HashMap<Key, Value>>,
-    size: usize,
     lower_bound: Option<Key>,
     upper_bound: Option<Key>,
 }
 
-impl GuardScanner<'_> {
-    fn entries(&self) -> Box<dyn Iterator<Item = Result<Entry, Error>> + '_> {
+impl<'a> GuardScanner<'a> {
+    pub fn new(
+        guard: RwLockReadGuard<'a, HashMap<Key, Value>>,
+        lower_bound: Option<Key>,
+        upper_bound: Option<Key>,
+    ) -> Self {
+        Self {
+            guard,
+            lower_bound,
+            upper_bound,
+        }
+    }
+}
+
+impl Scanner for GuardScanner<'_> {
+    fn iter(&self) -> Box<Iterator<Item = Result<Entry, Error>> + '_> {
         let mut entries: Box<dyn Iterator<Item = EntryRef>> = Box::new(self.guard.iter());
         if let Some(lower_key) = self.lower_bound.as_ref() {
             entries = Box::new(entries.filter(move |(key, _)| *key >= lower_key))
@@ -101,15 +105,5 @@ impl GuardScanner<'_> {
             entries = Box::new(entries.filter(move |(key, _)| *key <= upper_key))
         }
         Box::new(entries.map(|(key, value)| Ok((key.clone(), value.clone()))))
-    }
-}
-
-impl Scanner for GuardScanner<'_> {
-    fn size(&self) -> usize {
-        self.size
-    }
-
-    fn iter(&self) -> Box<dyn Iterator<Item = Result<Entry, Error>> + '_> {
-        self.entries()
     }
 }
