@@ -44,7 +44,7 @@ impl<T: Read + Write> Connection<T> {
                 NotFound => Ok(None),
                 code => Err(Error::new(code, "get request error")),
             },
-            SingleValue { status: _, value } => Ok(Some(value)),
+            SingleValue(value) => Ok(Some(value)),
             _ => unreachable!(),
         }
     }
@@ -53,7 +53,7 @@ impl<T: Read + Write> Connection<T> {
         &mut self,
         lower_bound: Option<Key>,
         upper_bound: Option<Key>,
-    ) -> Result<(usize, Box<dyn Iterator<Item = Result<Entry>> + '_>)> {
+    ) -> Result<Box<dyn Iterator<Item = Result<Entry>> + '_>> {
         Request::Scan {
             lower_bound,
             upper_bound,
@@ -61,12 +61,7 @@ impl<T: Read + Write> Connection<T> {
         .write_to(&mut self.inner)?;
         match Response::read_from(&mut self.inner, Scan)? {
             Status(status) => Err(Error::new(status, "scan request error")),
-
-            Scanner {
-                status: _,
-                size,
-                iter,
-            } => Ok((size, iter)),
+            Scanner(iter) => Ok(iter),
             _ => unreachable!(),
         }
     }

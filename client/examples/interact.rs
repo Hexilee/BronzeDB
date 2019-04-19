@@ -58,9 +58,8 @@ fn main() -> Result<()> {
                     "" => None,
                     key => Some(key.as_bytes().to_vec().into()),
                 };
-
-                let (size, scanner) = client.scan(lower_bound, upper_bound)?;
-                println!("{} items:", size);
+                let scanner = client.scan(lower_bound, upper_bound)?;
+                let mut counter = 0;
                 for item in scanner {
                     let (key, value) = item?;
                     println!(
@@ -68,13 +67,15 @@ fn main() -> Result<()> {
                         String::from_utf8(key.to_vec()).unwrap(),
                         String::from_utf8(value).unwrap()
                     );
+                    counter += 1;
                 }
+                println!("{} items:", counter);
             }
             _ => {
                 break Err(Error::new(
                     StatusCode::UnknownAction,
                     format!("unknown action: {}", action[0]),
-                ))
+                ));
             }
         }
     }
