@@ -47,7 +47,6 @@ impl Engine for EngineImpl {
     fn set(&mut self, key: Key, value: Vec<u8>) -> Result<(), Self::Error> {
         self.inner.set(key, value)?;
         Ok(())
-
     }
 
     fn get(&self, key: Key) -> Result<Option<Vec<u8>>, Self::Error> {
@@ -69,5 +68,5 @@ impl Engine for EngineImpl {
 }
 
 pub struct SledScanner {
-    iter
+    //    iter
 }

@@ -57,14 +57,16 @@ fn one_connect() -> Result<()> {
     }
     {
         let now = Instant::now();
-        let (size, scanner) = client.scan(None, None)?;
+        let scanner = client.scan(None, None)?;
+        let mut counter = 0;
         for item in scanner {
             let (key, value) = item?;
             debug_assert_eq!(value.as_slice(), key.as_slice());
+            counter += 1;
         }
         println!(
             "one connect scan: {}/s",
-            size as f64 / now.elapsed().as_secs_f64()
+            counter as f64 / now.elapsed().as_secs_f64()
         );
     }
     {
@@ -143,12 +145,14 @@ fn multi_connect() -> Result<()> {
                 let lower_key = (id * SIZE).to_string().into_bytes().into();
                 let upper_key = ((id + 1) * SIZE - 1).to_string().into_bytes().into();
                 let mut client = pool.get().unwrap();
-                let (size, scanner) = client.scan(Some(lower_key), Some(upper_key))?;
+                let scanner = client.scan(Some(lower_key), Some(upper_key))?;
+                let mut counter = 0;
                 for item in scanner {
                     let (key, value) = item?;
                     debug_assert_eq!(value.as_slice(), key.as_slice());
+                    counter += 1;
                 }
-                Ok(size)
+                Ok(counter)
             }));
         }
 
