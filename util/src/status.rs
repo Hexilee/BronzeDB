@@ -9,6 +9,7 @@ pub enum StatusCode {
     UnknownAction = 2,
     EngineError = 3,
     NotFound = 4,
+    Complete = 5,
     UnknownStatusCode = MAX as isize,
 }
 
@@ -20,6 +21,7 @@ impl From<u8> for StatusCode {
             2 => StatusCode::UnknownAction,
             3 => StatusCode::EngineError,
             4 => StatusCode::NotFound,
+            5 => StatusCode::Complete,
             _ => StatusCode::UnknownStatusCode,
         }
     }
@@ -33,6 +35,7 @@ impl ToString for StatusCode {
             StatusCode::UnknownAction => "UnknownAction".into(),
             StatusCode::EngineError => "EngineError".into(),
             StatusCode::NotFound => "NotFound".into(),
+            StatusCode::Complete => "Complete".into(),
             StatusCode::UnknownStatusCode => "UnknownStatusCode".into(),
         }
     }
