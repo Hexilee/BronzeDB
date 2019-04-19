@@ -62,7 +62,7 @@ impl<T: Read + Write> Connection<T> {
         match Response::read_from(&mut self.inner, Scan)? {
             Status(status) => Err(Error::new(status, "scan request error")),
 
-            MultiKV {
+            Scanner {
                 status: _,
                 size,
                 iter,

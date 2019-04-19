@@ -1,6 +1,6 @@
 use super::request::Action::{self, *};
 use crate::ext::{ReadKVExt, WriteKVExt};
-use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
+use byteorder::{ReadBytesExt, WriteBytesExt};
 use std::io::{Read, Write};
 use util::status::StatusCode::{self, *};
 use util::status::{Error, Result};
@@ -8,15 +8,8 @@ use util::types::{Entry, Value};
 
 pub enum Response<'a> {
     Status(StatusCode),
-    SingleValue {
-        status: StatusCode,
-        value: Value,
-    },
-    MultiKV {
-        status: StatusCode,
-        size: usize,
-        iter: Box<dyn Iterator<Item = Result<Entry>> + 'a>,
-    },
+    SingleValue(Value),
+    Scanner(Box<dyn Iterator<Item = Result<Entry>> + 'a>),
 }
 
 impl<'a> Response<'a> {
@@ -24,14 +17,12 @@ impl<'a> Response<'a> {
         let mut counter = 1usize; // for StatusCode
         match self {
             Response::Status(status) => writer.write_u8(status as u8)?,
-            Response::SingleValue { status, value } => {
-                writer.write_u8(status as u8)?;
+            Response::SingleValue(value) => {
+                writer.write_u8(OK as u8)?;
                 counter += writer.write_value(&value)?;
             }
-            Response::MultiKV { status, size, iter } => {
-                writer.write_u8(status as u8)?;
-                writer.write_u32::<BigEndian>(size as u32)?;
-                counter += 4;
+            Response::Scanner(iter) => {
+                writer.write_u8(OK as u8)?;
                 for result in iter {
                     match result {
                         Ok((key, value)) => {
@@ -44,6 +35,8 @@ impl<'a> Response<'a> {
                         }
                     }
                 }
+                writer.write_u8(Complete as u8)?;
+                counter += 1;
             }
         }
         Ok(counter)
@@ -52,19 +45,9 @@ impl<'a> Response<'a> {
     pub fn read_from(reader: &'a mut dyn Read, request_action: Action) -> Result<Self> {
         match reader.read_u8()?.into() {
             OK => match request_action {
-                Get => Ok(Response::SingleValue {
-                    status: OK,
-                    value: reader.read_value()?,
-                }),
+                Get => Ok(Response::SingleValue(reader.read_value()?)),
                 Delete | Set | Ping => Ok(Response::Status(OK)),
-                Scan => {
-                    let size = reader.read_u32::<BigEndian>()? as usize;
-                    Ok(Response::MultiKV {
-                        status: OK,
-                        size,
-                        iter: Box::new(ReaderIter::new(size, reader)),
-                    })
-                }
+                Scan => Ok(Response::Scanner(Box::new(ReaderIter::new(reader)))),
                 Unknown => Err(Error::new(
                     UnknownAction,
                     format!("unknown action: {:?}", request_action),
@@ -77,16 +60,16 @@ impl<'a> Response<'a> {
 }
 
 struct ReaderIter<'a> {
-    size: usize,
     reader: &'a mut dyn Read,
+    complete: bool,
     err_occurred: bool,
 }
 
 impl<'a> ReaderIter<'a> {
-    fn new(size: usize, reader: &'a mut dyn Read) -> Self {
+    fn new(reader: &'a mut dyn Read) -> Self {
         Self {
-            size,
             reader,
+            complete: false,
             err_occurred: false,
         }
     }
@@ -94,13 +77,15 @@ impl<'a> ReaderIter<'a> {
 
 impl Iterator for ReaderIter<'_> {
     type Item = Result<Entry>;
-
     fn next(&mut self) -> Option<Self::Item> {
-        if self.size == 0 || self.err_occurred {
+        if self.complete || self.err_occurred {
             return None;
         }
-        self.size -= 1;
-        Some(self.read_entry())
+        match self.read_entry() {
+            Ok(entry) => Some(Ok(entry)),
+            Err(ref err) if err.code == Complete => None,
+            Err(err) => Some(Err(err)),
+        }
     }
 }
 
@@ -108,6 +93,10 @@ impl ReaderIter<'_> {
     fn read_entry(&mut self) -> Result<Entry> {
         match self.reader.read_u8()?.into() {
             OK => Ok((self.reader.read_key()?.into(), self.reader.read_value()?)),
+            Complete => {
+                self.complete = true;
+                Err(Error::new(Complete, "complete"))
+            }
             code => {
                 self.err_occurred = true;
                 Err(Error::new(code, "some error"))
@@ -166,8 +155,8 @@ mod tests {
                 assert_status_not_ok!(UnknownAction);
             }
 
-            it "poison error" {
-                assert_status_not_ok!(PoisonError);
+            it "engine error" {
+                assert_status_not_ok!(EngineError);
             }
 
             it "not found" {
@@ -198,16 +187,12 @@ mod tests {
         ($value:expr) => {
             transfer_move!(
                 new_resp,
-                SingleValue {
-                    status: StatusCode::OK,
-                    value: $value.to_vec(),
-                },
+                SingleValue($value.to_vec()),
                 $value.len() + 3,
                 Get
             );
-            assert!(matches!(new_resp, SingleValue{status: _, value: _}));
-            if let SingleValue { status, value } = new_resp {
-                assert_eq!(StatusCode::OK, status);
+            assert!(matches!(new_resp, SingleValue(_)));
+            if let SingleValue(value) = new_resp {
                 assert_eq!(&$value[..], value.as_slice());
             }
         };
@@ -247,21 +232,15 @@ mod tests {
 
         transfer_move!(
             new_resp,
-            MultiKV {
-                status: StatusCode::OK,
-                size: origin_data.len(),
-                iter: Box::new(origin_data.iter().map(|entry| Ok(entry.clone())))
-            },
-            5 + origin_data.len() * 5
+            Scanner(Box::new(origin_data.iter().map(|entry| Ok(entry.clone())))),
+            2 + origin_data.len() * 5
                 + origin_data
                     .iter()
                     .fold(0, |size, (key, value)| size + key.len() + value.len()),
             Scan
         );
-        assert!(matches!(new_resp, MultiKV{status: _, size: _, iter: _}));
-        if let MultiKV { status, size, iter } = new_resp {
-            assert_eq!(StatusCode::OK, status);
-            assert_eq!(origin_data.len(), size);
+        assert!(matches!(new_resp, Scanner(_)));
+        if let Scanner(iter) = new_resp {
             let transferred_data = iter.map(|ret| ret.unwrap()).collect::<Vec<Entry>>();
             assert_eq!(origin_data, transferred_data);
         }
@@ -277,22 +256,11 @@ mod tests {
 
         transfer_err!(
             new_resp,
-            MultiKV {
-                status: StatusCode::OK,
-                size: origin_data.len(),
-                iter: Box::new(origin_data.clone().into_iter())
-            },
+            Scanner(Box::new(origin_data.clone().into_iter())),
             Scan
         );
-        assert!(matches!(new_resp, MultiKV{status: _, size: _, iter: _}));
-        if let MultiKV {
-            status,
-            size,
-            mut iter,
-        } = new_resp
-        {
-            assert_eq!(StatusCode::OK, status);
-            assert_eq!(3usize, size);
+        assert!(matches!(new_resp, Scanner(_)));
+        if let Scanner(mut iter) = new_resp {
             assert_eq!(
                 origin_data[0].as_ref().unwrap(),
                 &iter.next().unwrap().unwrap()

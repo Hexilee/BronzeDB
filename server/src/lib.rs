@@ -75,7 +75,7 @@ fn handle_client<T: Engine>(mut stream: TcpStream, mut engine: T) -> Result<()> 
                 } => {
                     let scanner =
                         deal_engine_err(&mut stream, engine.scan(lower_bound, upper_bound))?;
-                    Response::MultiKV {
+                    Response::Scanner {
                         status: OK,
                         size: scanner.size(),
                         iter: scanner.iter(),
