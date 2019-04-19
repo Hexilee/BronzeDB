@@ -125,7 +125,7 @@ impl Request {
 #[cfg(test)]
 mod tests {
     use super::Request;
-    use crate::{MAX_KEY_LEN, MAX_VALUE_LEN};
+    use crate::{MAX_KEY, MAX_KEY_LEN, MAX_VALUE_LEN, MIN_KEY};
     use matches::matches;
     use speculate::speculate;
     use std::io::Cursor;
@@ -247,7 +247,7 @@ mod tests {
             }
             .transfer_move()
             .unwrap();
-            assert_eq!(1 + 4 + MAX_KEY_LEN * 2, bytes);
+            assert_eq!(1 + 4 + MAX_KEY.len() + MIN_KEY.len(), bytes);
             assert!(matches!(&new_request, Request::Scan{lower_bound: _, upper_bound: _}));
             if let Request::Scan {
                 lower_bound,
@@ -288,7 +288,7 @@ mod tests {
                 }
                 .transfer_move()
                 .unwrap();
-                assert_eq!(1 + 4 + $any_bound[..].len() + MAX_KEY_LEN, bytes);
+                assert_eq!(1 + 4 + $any_bound[..].len() + MAX_KEY.len(), bytes);
                 assert!(matches!(&new_request, Request::Scan{lower_bound: _, upper_bound: _}));
                 if let Request::Scan {
                     lower_bound,
@@ -307,7 +307,7 @@ mod tests {
                 }
                 .transfer_move()
                 .unwrap();
-                assert_eq!(1 + 4 + MAX_KEY_LEN + $any_bound[..].len(), bytes);
+                assert_eq!(1 + 4 + MIN_KEY.len() + $any_bound[..].len(), bytes);
                 assert!(matches!(&new_request, Request::Scan{lower_bound: _, upper_bound: _}));
                 if let Request::Scan {
                     lower_bound,
@@ -330,17 +330,13 @@ mod tests {
                 assert_scan!(b"last_name", b"name");
             }
 
-            it "zero" {
-                assert_scan!([0; 0], [0; 0]);
-            }
-
             it "max length" {
                 assert_scan!([1; MAX_KEY_LEN], [MAX - 1; MAX_KEY_LEN]);
             }
 
             #[should_panic] // should be (None, None)
             it "max range" {
-                assert_scan!([0; MAX_KEY_LEN], [MAX; MAX_KEY_LEN]);
+                assert_scan!(b"", [MAX; MAX_KEY_LEN]);
             }
 
             #[should_panic]
@@ -354,17 +350,13 @@ mod tests {
                 assert_scan!(b"last_name");
             }
 
-            it "zero" {
-                assert_scan!([0; 0]);
-            }
-
             it "max length" {
                 assert_scan!([1; MAX_KEY_LEN]);
             }
 
             #[should_panic] // should be (None, None)
             it "min lower_bound" {
-                assert_scan!([0; MAX_KEY_LEN]);
+                assert_scan!(b"");
             }
 
             #[should_panic] // should be (None, None)
