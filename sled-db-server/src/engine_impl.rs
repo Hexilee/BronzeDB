@@ -2,7 +2,7 @@ use engine::{Engine, Scanner};
 use sled::Db;
 use std::path;
 use util::status::{Error, StatusCode};
-use util::types::Key;
+use util::types::{Entry, Key};
 
 #[derive(Debug)]
 pub struct EngineError {
@@ -62,11 +62,48 @@ impl Engine for EngineImpl {
         &self,
         lower_bound: Option<Key>,
         upper_bound: Option<Key>,
-    ) -> Result<Box<Scanner>, Self::Error> {
-        self.inner.scan()
+    ) -> Result<Box<Scanner + '_>, Self::Error> {
+        let iter = match lower_bound {
+            Some(key) => self.inner.scan(key),
+            None => self.inner.iter(),
+        };
+
+        let mut entries: Box<Iterator<Item = Result<Entry, Error>>> =
+            Box::new(iter.map(|item| -> Result<Entry, Error> {
+                match item {
+                    Ok((key, value)) => Ok((key.into(), value.to_vec())),
+                    Err(err) => Err(EngineError::from(err).into()),
+                }
+            }));
+        if let Some(_) = upper_bound {
+            entries = Box::new(entries.filter(move |item| match item {
+                Ok((ref key, _)) => key <= upper_bound.as_ref().unwrap(),
+                _ => true,
+            }));
+        }
+        Ok(Box::new(SledScanner::new(entries)))
     }
 }
 
-pub struct SledScanner {
-    //    iter
+pub struct SledScanner<'a> {
+    iter: Box<Iterator<Item = Result<Entry, Error>> + 'a>,
+}
+
+impl<'a> SledScanner<'a> {
+    pub fn new(iter: Box<Iterator<Item = Result<Entry, Error>> + 'a>) -> Self {
+        Self { iter }
+    }
+}
+
+impl Scanner for SledScanner<'_> {
+    fn iter(&mut self) -> Box<Iterator<Item = Result<Entry, Error>> + '_> {
+        Box::new(self)
+    }
+}
+
+impl Iterator for SledScanner<'_> {
+    type Item = Result<Entry, Error>;
+    fn next(&mut self) -> Option<Self::Item> {
+        self.iter.next()
+    }
 }

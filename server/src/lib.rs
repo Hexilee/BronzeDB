@@ -69,7 +69,7 @@ fn handle_client<T: Engine>(mut stream: TcpStream, mut engine: T) -> Result<()> 
                     lower_bound,
                     upper_bound,
                 } => {
-                    let scanner =
+                    let mut scanner =
                         deal_engine_err(&mut stream, engine.scan(lower_bound, upper_bound))?;
                     Response::Scanner(scanner.iter()).write_to(&mut stream)?;
                 }

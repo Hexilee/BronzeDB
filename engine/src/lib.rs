@@ -14,5 +14,5 @@ pub trait Engine {
 }
 
 pub trait Scanner {
-    fn iter(&self) -> Box<dyn Iterator<Item = Result<Entry, Error>> + '_>;
+    fn iter(&mut self) -> Box<dyn Iterator<Item = Result<Entry, Error>> + '_>;
 }

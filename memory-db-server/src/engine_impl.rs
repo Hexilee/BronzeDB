@@ -96,7 +96,7 @@ impl<'a> GuardScanner<'a> {
 }
 
 impl Scanner for GuardScanner<'_> {
-    fn iter(&self) -> Box<Iterator<Item = Result<Entry, Error>> + '_> {
+    fn iter(&mut self) -> Box<Iterator<Item = Result<Entry, Error>> + '_> {
         let mut entries: Box<dyn Iterator<Item = EntryRef>> = Box::new(self.guard.iter());
         if let Some(lower_key) = self.lower_bound.as_ref() {
             entries = Box::new(entries.filter(move |(key, _)| *key >= lower_key))
