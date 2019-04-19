@@ -1,0 +1,2 @@
+db_addr = "127.0.0.1:8088"
+db_path = "bronze.db"
