@@ -113,9 +113,9 @@ mod tests {
     use matches::matches;
     use speculate::speculate;
     use std::io::Cursor;
-    use util::status::StatusCode::{self, *};
-    use util::status::{Error, Result};
-    use util::types::Entry;
+    use bronzedb_util::status::StatusCode::{self, *};
+    use bronzedb_util::status::{Error, Result};
+    use bronzedb_util::types::Entry;
 
     macro_rules! transfer_move {
         ($new_resp:ident, $origin_resp:expr, $size:expr, $action:expr) => {

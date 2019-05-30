@@ -129,7 +129,7 @@ mod tests {
     use matches::matches;
     use speculate::speculate;
     use std::io::Cursor;
-    use util::status::Result;
+    use bronzedb_util::status::Result;
 
     pub trait RequestTestExt: Sized {
         fn transfer_move(self) -> Result<(Self, usize)>;
