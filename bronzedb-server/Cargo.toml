@@ -3,6 +3,16 @@ name = "bronzedb-server"
 version = "0.1.0"
 authors = ["Hexilee <hexileee@gmail.com>"]
 edition = "2018"
+license = "MIT"
+description = "engine interface for bronzedb"
+repository = "https://github.com/Hexilee/BronzeDB"
+keywords = ["database", "kv"]
+categories = ["database"]
+readme = "README.md"
+documentation = "https://docs.rs/bronzedb-server"
+
+[badges]
+travis-ci = { repository = "Hexilee/BronzeDB", branch = "master" }
 
 [dependencies]
 bronzedb-engine = { path = "../bronzedb-engine", version = "0.1"}
