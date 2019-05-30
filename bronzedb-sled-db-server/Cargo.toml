@@ -1,0 +1,15 @@
+[package]
+name = "bronzedb-sled-db-server"
+version = "0.1.0"
+authors = ["Hexilee <hexileee@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+sled = "0.22"
+env_logger = "0.6"
+config = "0.9"
+serde = "1.0"
+serde_derive = "1.0"
+engine = { path = "../bronzedb-engine", version = "0.1"}
+server = { path = "../bronzedb-server", version = "0.1"}
+util = { path = "../bronzedb-util", version = "0.1"}

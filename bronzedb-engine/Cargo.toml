@@ -1,8 +1,8 @@
 [package]
-name = "engine"
+name = "bronzedb-engine"
 version = "0.1.0"
 authors = ["Hexilee <hexileee@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-util = { path = "../util", version = "0.1" }
+util = { path = "../bronzedb-util", version = "0.1" }

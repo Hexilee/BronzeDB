@@ -1,5 +1,5 @@
 [package]
-name = "util"
+name = "bronzedb-util"
 version = "0.1.0"
 authors = ["Hexilee <hexileee@gmail.com>"]
 edition = "2018"

@@ -5,8 +5,8 @@ authors = ["Hexilee <hexileee@gmail.com>"]
 edition = "2018"
 
 [dev-dependencies]
-client = { path = "../client", version = "0.1"}
-util = { path = "../util", version = "0.1"}
+client = { path = "../bronzedb-client", version = "0.1"}
+util = { path = "../bronzedb-util", version = "0.1"}
 config = "0.9"
 serde = "1.0"
 serde_derive = "1.0"

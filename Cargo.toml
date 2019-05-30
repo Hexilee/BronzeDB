@@ -13,22 +13,22 @@ documentation = "https://docs.rs/bronzedb"
 
 [workspace]
 members = [
-    "engine",
-    "memory-db-server",
-    "sled-db-server",
-    "protocol",
-    "util",
-    "client",
-    "server",
+    "bronzedb-engine",
+    "bronzedb-memory-db-server",
+    "bronzedb-sled-db-server",
+    "bronzedb-protocol",
+    "bronzedb-util",
+    "bronzedb-client",
+    "bronzedb-server",
     "tests"
 ]
 
 [dependencies]
-engine = { path = "engine", version = "0.1"}
-protocol = { path = "protocol", version = "0.1"}
-util = { path = "util", version = "0.1"}
-client = { path = "client", version = "0.1"}
-server = { path = "server", version = "0.1"}
+engine = { path = "bronzedb-engine", version = "0.1"}
+protocol = { path = "bronzedb-protocol", version = "0.1"}
+util = { path = "bronzedb-util", version = "0.1"}
+client = { path = "bronzedb-client", version = "0.1"}
+server = { path = "bronzedb-server", version = "0.1"}
 
 [badges]
 travis-ci = { repository = "Hexilee/BronzeDB", branch = "master" }

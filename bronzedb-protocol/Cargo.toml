@@ -1,12 +1,12 @@
 [package]
-name = "protocol"
+name = "bronzedb-protocol"
 version = "0.1.0"
 authors = ["Hexilee <hexileee@gmail.com>"]
 edition = "2018"
 
 [dependencies]
 byteorder = "1.3"
-util = { path = "../util", version = "0.1"}
+util = { path = "../bronzedb-util", version = "0.1"}
 
 [dev-dependencies]
 matches = "0.1"
