@@ -30,7 +30,7 @@ fn get_client() -> Result<Connection<TcpStream>> {
 #[test]
 fn one_connect() -> Result<()> {
     let mut client = get_client()?;
-    const SIZE: u64 = 20_000;
+    const SIZE: u64 = 10_000;
     {
         let now = Instant::now();
         for i in 0..SIZE {

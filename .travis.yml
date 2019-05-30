@@ -17,4 +17,4 @@ before_script:
 
 script:
   - cargo build --verbose --all
-  - cargo test --verbose --all -- --nocapture --test-threads=1
+  - cargo test --all -- --nocapture --test-threads=1
