@@ -1,5 +1,5 @@
-use util::status::Error;
-use util::types::{Entry, Key, Value};
+use bronzedb_util::status::Error;
+use bronzedb_util::types::{Entry, Key, Value};
 
 pub trait Engine {
     type Error: Into<Error>;

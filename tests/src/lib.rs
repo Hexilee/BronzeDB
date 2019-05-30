@@ -4,10 +4,10 @@
 #[macro_use]
 extern crate serde_derive;
 
-use client::{BronzeConnManager, Connection, Pool};
+use bronzedb_client::{BronzeConnManager, Connection, Pool};
+use bronzedb_util::status::Result;
 use std::net::TcpStream;
 use std::time::Instant;
-use util::status::Result;
 
 #[derive(Serialize, Deserialize, Debug)]
 struct Config {

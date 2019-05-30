@@ -1,10 +1,10 @@
 use crate::ext::{ReadKVExt, WriteKVExt};
 use crate::{MAX_KEY, MIN_KEY};
+use bronzedb_util::types::{Key, Value};
 use byteorder::{ReadBytesExt, WriteBytesExt};
 use std::io::{self, Read, Write};
 use std::ops::Deref;
 use std::u8::MAX;
-use util::types::{Key, Value};
 
 #[derive(Debug, Copy, Clone)]
 pub enum Action {

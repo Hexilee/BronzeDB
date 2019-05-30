@@ -1,7 +1,7 @@
 use crate::{MAX_KEY_LEN, MAX_VALUE_LEN};
+use bronzedb_util::types::Value;
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 use std::io::{self, Read, Write};
-use util::types::Value;
 
 pub trait WriteKVExt: Write {
     fn write_key(&mut self, key: &[u8]) -> io::Result<usize>;

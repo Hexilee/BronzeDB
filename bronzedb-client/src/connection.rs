@@ -1,10 +1,10 @@
-use protocol::request::Action::{Delete, Get, Ping, Scan, Set};
-use protocol::request::Request;
-use protocol::response::Response::{self, *};
+use bronzedb_protocol::request::Action::{Delete, Get, Ping, Scan, Set};
+use bronzedb_protocol::request::Request;
+use bronzedb_protocol::response::Response::{self, *};
+use bronzedb_util::status::StatusCode::*;
+use bronzedb_util::status::{Error, Result};
+use bronzedb_util::types::{Entry, Key, Value};
 use std::io::{Read, Write};
-use util::status::StatusCode::*;
-use util::status::{Error, Result};
-use util::types::{Entry, Key, Value};
 
 pub struct Connection<T: Read + Write> {
     inner: T,

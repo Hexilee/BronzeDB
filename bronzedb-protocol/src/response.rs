@@ -1,10 +1,10 @@
 use super::request::Action::{self, *};
 use crate::ext::{ReadKVExt, WriteKVExt};
+use bronzedb_util::status::StatusCode::{self, *};
+use bronzedb_util::status::{Error, Result};
+use bronzedb_util::types::{Entry, Value};
 use byteorder::{ReadBytesExt, WriteBytesExt};
 use std::io::{Read, Write};
-use util::status::StatusCode::{self, *};
-use util::status::{Error, Result};
-use util::types::{Entry, Value};
 
 pub enum Response<'a> {
     Status(StatusCode),

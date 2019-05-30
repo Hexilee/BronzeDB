@@ -1,7 +1,7 @@
-use client::Connection;
+use bronzedb_client::Connection;
+use bronzedb_util::status::{Error, Result, StatusCode};
 use std::io::{self, Write};
 use std::net::TcpStream;
-use util::status::{Error, Result, StatusCode};
 
 fn main() -> Result<()> {
     let mut addr = String::new();

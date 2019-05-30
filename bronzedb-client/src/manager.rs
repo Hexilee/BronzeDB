@@ -1,6 +1,6 @@
 use super::Connection;
+use bronzedb_util::status::Error;
 use std::net::TcpStream;
-use util::status::Error;
 
 pub struct BronzeConnManager {
     db_addr: String,

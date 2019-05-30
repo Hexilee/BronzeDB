@@ -1,8 +1,8 @@
-use engine::{Engine, Scanner};
+use bronzedb_engine::{Engine, Scanner};
+use bronzedb_util::status::{Error, StatusCode};
+use bronzedb_util::types::{Entry, Key};
 use sled::Db;
 use std::path;
-use util::status::{Error, StatusCode};
-use util::types::{Entry, Key};
 
 #[derive(Debug)]
 pub struct EngineError {
