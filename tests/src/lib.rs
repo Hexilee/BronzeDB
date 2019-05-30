@@ -22,21 +22,20 @@ impl Config {
     }
 }
 
-fn get_client() -> Result<Connection<TcpStream>> {
-    let conn = TcpStream::connect(&Config::new().db_addr)?;
-    Ok(Connection::new(conn))
-}
-
 #[test]
-fn one_connect() -> Result<()> {
-    let mut client = get_client()?;
+fn single_thread() -> Result<()> {
+    let manager = BronzeConnManager::new(Config::new().db_addr);
+    let pool = Pool::builder()
+        .max_size(1)
+        .build(manager)
+        .unwrap();
     const SIZE: u64 = 10_000;
     {
         let now = Instant::now();
         for i in 0..SIZE {
             let value = i.to_string().into_bytes();
             let key = value.clone().into();
-            client.set(key, value)?;
+            pool.get().unwrap().set(key, value)?;
         }
         println!(
             "one connect set: {}/s",
@@ -48,7 +47,7 @@ fn one_connect() -> Result<()> {
         for i in 0..SIZE {
             let value = i.to_string().into_bytes();
             let key = value.clone().into();
-            debug_assert_eq!(value, client.get(key)?.unwrap());
+            debug_assert_eq!(value, pool.get().unwrap().get(key)?.unwrap());
         }
         println!(
             "one connect get: {}/s",
@@ -57,7 +56,8 @@ fn one_connect() -> Result<()> {
     }
     {
         let now = Instant::now();
-        let scanner = client.scan(None, None)?;
+        let mut connect = pool.get().unwrap();
+        let scanner = connect.scan(None, None)?;
         let mut counter = 0;
         for item in scanner {
             let (key, value) = item?;
@@ -73,7 +73,7 @@ fn one_connect() -> Result<()> {
         let now = Instant::now();
         for i in 0..SIZE {
             let key = i.to_string().into_bytes().into();
-            client.delete(key)?;
+            pool.get().unwrap().delete(key)?;
         }
         println!(
             "one connect delete: {}/s",
@@ -84,7 +84,7 @@ fn one_connect() -> Result<()> {
 }
 
 #[test]
-fn multi_connect() -> Result<()> {
+fn multi_thread() -> Result<()> {
     const THREADS: u64 = 1000;
     const SIZE: u64 = 100;
     let manager = BronzeConnManager::new(Config::new().db_addr);
