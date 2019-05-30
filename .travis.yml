@@ -7,3 +7,13 @@ rust:
 #  allow_failures:
 #    - rust: stable
 #    - rust: beta
+
+install:
+  - cargo install bronzedb-memory-db-server
+
+before_script:
+  - bronzedb-memory-db-server &
+
+script:
+  - cargo build --verbose --all
+  - cargo test --verbose --all -- --nocapture --test-threads=1
