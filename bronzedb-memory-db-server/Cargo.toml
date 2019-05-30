@@ -5,7 +5,7 @@ authors = ["Hexilee <hexileee@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-engine = { path = "../bronzedb-engine", version = "0.1"}
-server = { path = "../bronzedb-server", version = "0.1"}
-util = { path = "../bronzedb-util", version = "0.1"}
+bronzedb-engine = { path = "../bronzedb-engine", version = "0.1"}
+bronzedb-server = { path = "../bronzedb-server", version = "0.1"}
+bronzedb-util = { path = "../bronzedb-util", version = "0.1"}
 env_logger = "0.6"

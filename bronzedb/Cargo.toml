@@ -1,0 +1,22 @@
+[package]
+name = "bronzedb"
+version = "0.1.0"
+authors = ["Hexilee <hexileee@gmail.com>"]
+edition = "2018"
+license = "MIT"
+description = "bronzedb is a kv-database, this is a reexport crate"
+repository = "https://github.com/Hexilee/BronzeDB"
+keywords = ["database", "kv"]
+categories = ["database"]
+readme = "README.md"
+documentation = "https://docs.rs/bronzedb"
+
+[dependencies]
+bronzedb-engine = { path = "../bronzedb-engine", version = "0.1"}
+bronzedb-protocol = { path = "../bronzedb-protocol", version = "0.1"}
+bronzedb-util = { path = "../bronzedb-util", version = "0.1"}
+bronzedb-client = { path = "../bronzedb-client", version = "0.1"}
+bronzedb-server = { path = "../bronzedb-server", version = "0.1"}
+
+[badges]
+travis-ci = { repository = "Hexilee/BronzeDB", branch = "master" }
