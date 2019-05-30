@@ -3,6 +3,16 @@ name = "bronzedb-util"
 version = "0.1.0"
 authors = ["Hexilee <hexileee@gmail.com>"]
 edition = "2018"
+license = "MIT"
+description = "util for bronzedb"
+repository = "https://github.com/Hexilee/BronzeDB"
+keywords = ["database", "kv"]
+categories = ["database"]
+readme = "README.md"
+documentation = "https://docs.rs/bronzedb-util"
+
+[badges]
+travis-ci = { repository = "Hexilee/BronzeDB", branch = "master" }
 
 [dependencies]
 libc = "0.2"
