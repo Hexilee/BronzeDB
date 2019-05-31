@@ -9,11 +9,12 @@ matrix:
     - rust: beta
 
 install:
-  - cargo install bronzedb-memory-db-server
+  - cargo install bronzedb-sled-db-server
 
 before_script:
   - echo "db_addr = \"127.0.0.1:8088\"" > Settings.toml
-  - bronzedb-memory-db-server &
+  - echo "db_path = \"bronze.db\"" >> Settings.toml
+  - bronzedb-sled-db-server &
 
 script:
   - cargo build --verbose --all
